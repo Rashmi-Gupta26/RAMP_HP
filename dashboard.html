@@ -286,15 +286,42 @@ mountChrome('dashboard');
    RAMP Government Dashboard — applications-first view
    ─────────────────────────────────────────────────────────────── */
 
-const SHEET_CSV_URL = ''; // ← paste published Google Sheet CSV here when live
+/* ─── Backend wiring ───
+   Sheet → File → Share → Publish to web → Entire Document → CSV → copy URL.
+   Leave empty to keep showing the seeded demo data. */
+const SHEET_CSV_URL = '';
 
-/* ─── The four implementation partners ─── */
+/* ─── The four implementation partners ───
+   Canonical names match backend/apps-script/Config.gs > CONFIG.PARTNERS.
+   `aliases` lets older sheet rows or hand-typed entries still resolve. */
 const PARTNERS = [
-  { name: 'IIT Mandi Catalyst',  url: 'https://www.iitmandicatalyst.in/',    short: 'IIT Mandi Catalyst' },
-  { name: 'SkillLabs',            url: 'https://skilllabs.net/',              short: 'SkillLabs' },
-  { name: 'The Planet Education', url: 'https://theplaneteducation.net/our-team.php', short: 'Planet Education' },
-  { name: 'RCED India',           url: 'https://rcedindia.com/',              short: 'RCED India' }
+  { name: 'IIT Mandi Catalyst',
+    url: 'https://www.iitmandicatalyst.in/',
+    short: 'IIT Mandi Catalyst',
+    aliases: ['iit mandi catalyst', 'catalyst'] },
+  { name: 'Skill Labs',
+    url: 'https://skilllabs.net/',
+    short: 'Skill Labs',
+    aliases: ['skill labs', 'skilllabs', 'skill-labs'] },
+  { name: 'The Planet Education Society',
+    url: 'https://theplaneteducation.net/our-team.php',
+    short: 'Planet Education',
+    aliases: ['planet education', 'the planet education', 'tpei', 'the planet education society'] },
+  { name: 'Regional Centre for Entrepreneurship Development',
+    url: 'https://rcedindia.com/',
+    short: 'RCED India',
+    aliases: ['rced', 'rced india', 'regional centre for entrepreneurship development'] }
 ];
+function canonPartner(raw){
+  const n = (raw||'').toLowerCase().trim();
+  if(!n) return '';
+  for(const p of PARTNERS){
+    if(p.name.toLowerCase()===n) return p.name;
+    if(p.aliases.some(a=>a===n)) return p.name;
+    if(n.indexOf(p.name.toLowerCase())!==-1) return p.name;
+  }
+  return raw;
+}
 
 /* ─── Demo applications (used until SHEET_CSV_URL is set) ─── */
 const DEMO_APPS = (function(){
@@ -370,7 +397,7 @@ function parseCSV(text){
     const st = obj['Status']||'Pending';
     return {
       id: obj['ID']||'—',
-      partner: obj['Implementation partner']||'',
+      partner: canonPartner(obj['Implementation partner']||''),
       district: obj['District']||'',
       name: obj['Name']||'',
       phone: obj['Phone']||'',
@@ -659,15 +686,16 @@ async function init(){
   let apps = null;
   if(SHEET_CSV_URL){
     try{
-      const res = await fetch(SHEET_CSV_URL);
+      const res = await fetch(SHEET_CSV_URL, {cache:'no-store'});
       apps = parseCSV(await res.text());
       const ts = new Date().toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
       document.getElementById('last-updated-val').textContent = ts;
-    }catch(e){ apps=null; }
+    }catch(e){ console.warn('Sheet fetch failed, falling back to demo data:', e); apps=null; }
   }
   if(!apps || !apps.length){
     apps = DEMO_APPS;
-    document.getElementById('last-updated-val').textContent = 'Demo data — connect Google Sheet to go live';
+    document.getElementById('last-updated-val').textContent =
+      SHEET_CSV_URL ? 'Sheet unreachable — showing demo data' : 'Demo data — connect Google Sheet to go live';
   }
   allApps = apps;
   setupFilters();
