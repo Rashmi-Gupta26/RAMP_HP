@@ -9,8 +9,8 @@ const CONFIG = {
 
   // ── Spreadsheet ────────────────────────────────────────────────────────
   // Open the master sheet → URL is .../spreadsheets/d/<THIS_ID>/edit
-  SHEET_ID:    'PUT_GOOGLE_SHEET_ID_HERE',
-  SHEET_NAME:  'Submissions',
+  SHEET_ID:    '1IpIlL3V3mJ_7X0BIJt1-6Dn4ZNGdzVy5BNY_WM86Mrg',
+  SHEET_NAME:  'Submissions',   // ← rename if Zoho writes to a different tab (e.g. "Form Responses 1")
 
   // ── Programme identity ────────────────────────────────────────────────
   PROGRAMME_NAME: 'RAMP Programme — IIT Mandi Catalyst',
