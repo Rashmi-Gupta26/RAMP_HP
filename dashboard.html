@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Government Dashboard — RAMP Himachal Pradesh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+/* ── Gate ── */
+#dash-gate{padding:60px 0;}
+#dash-gate .box{max-width:440px;margin:0 auto;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:36px;box-shadow:0 10px 40px rgba(0,0,0,.06);}
+#dash-gate .kicker{display:block;color:var(--clay);text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-family:'Helvetica Neue',Arial,sans-serif;margin-bottom:8px;}
+#dash-gate h2{margin:0 0 10px;font-size:1.5rem;}
+#dash-gate p{margin:0 0 20px;color:var(--ink-soft,#555);font-size:.95rem;}
+#dash-gate input[type=password]{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8px;font-size:1rem;box-sizing:border-box;}
+#dash-gate button{margin-top:12px;width:100%;padding:10px 14px;border:0;border-radius:8px;background:var(--clay,#b04a2f);color:#fff;font-size:1rem;cursor:pointer;}
+#dash-gate .err{color:#b04a2f;font-size:.85rem;margin-top:10px;min-height:1.1em;}
+body.locked #dash-content{display:none;}
+body:not(.locked) #dash-gate{display:none;}
+
+/* ── Header ── */
+.dash-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;}
+.dash-header h1{margin:0;}
+.last-updated{font-size:12px;color:var(--ink-soft,#666);font-family:'Helvetica Neue',Arial,sans-serif;background:#f5f5f0;border:1px solid #e0ddd6;padding:6px 12px;border-radius:20px;white-space:nowrap;}
+.last-updated strong{color:var(--ink);}
+
+/* ── Status badges ── */
+.badge{display:inline-block;font-size:11px;font-weight:600;font-family:'Helvetica Neue',Arial,sans-serif;padding:3px 9px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;}
+.badge-accepted {background:#d4edda;color:#1a5c30;}
+.badge-rejected {background:#fce8e6;color:#8c1a10;}
+.badge-pending  {background:#e8edf5;color:#2c4370;}
+.badge-review   {background:#fff3cd;color:#7a4a00;}
+.badge-overdue  {background:#ffe0cc;color:#8c3000;}
+
+/* ── Partner cards (4 fixed IPs) ── */
+.partner-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:24px 0;}
+@media(max-width:980px){.partner-cards{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.partner-cards{grid-template-columns:1fr;}}
+.partner-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:18px;border-top:4px solid var(--clay);cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.partner-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.07);}
+.partner-card.active{border-color:var(--clay);box-shadow:0 0 0 2px var(--clay);}
+.partner-card .pc-name{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px;line-height:1.25;}
+.partner-card .pc-link{display:block;font-size:11px;color:var(--clay);font-family:'Helvetica Neue',Arial,sans-serif;margin-bottom:12px;text-decoration:none;word-break:break-all;}
+.partner-card .pc-link:hover{text-decoration:underline;}
+.partner-card .pc-total{font-size:2rem;font-weight:700;color:var(--ink);line-height:1;}
+.partner-card .pc-tot-lbl{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;font-family:'Helvetica Neue',Arial,sans-serif;}
+.partner-card .pc-mini{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:11px;font-family:'Helvetica Neue',Arial,sans-serif;}
+.partner-card .pc-mini span{padding:2px 7px;border-radius:10px;}
+.partner-card .pc-mini .m-acc{background:#d4edda;color:#1a5c30;}
+.partner-card .pc-mini .m-pend{background:#e8edf5;color:#2c4370;}
+.partner-card .pc-mini .m-rej{background:#fce8e6;color:#8c1a10;}
+.partner-card .pc-mini .m-over{background:#ffe0cc;color:#8c3000;}
+
+/* ── Charts ── */
+.charts-row{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;margin:24px 0;}
+.chart-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:12px;padding:20px 24px;}
+.chart-card h3{margin:0 0 16px;font-size:.95rem;font-weight:600;color:var(--ink);}
+.chart-wrap{position:relative;}
+@media(max-width:760px){.charts-row{grid-template-columns:1fr;}}
+
+/* ── Filters ── */
+.filter-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin:24px 0 10px;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:10px;padding:14px 18px;}
+.filter-bar .form-row{margin:0;min-width:170px;flex:1;}
+.filter-bar .form-row input,.filter-bar .form-row select{width:100%;}
+.filter-bar .reset-btn{padding:9px 14px;border:1px solid var(--clay);background:#fff;color:var(--clay);border-radius:8px;cursor:pointer;font-size:13px;height:fit-content;}
+.filter-bar .reset-btn:hover{background:var(--clay);color:#fff;}
+
+/* ── Applications table ── */
+.apps-section{margin-top:8px;}
+.apps-section .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.apps-section h2{font-size:1.1rem;margin:0;}
+.apps-count{font-size:12px;color:var(--ink-soft);font-family:'Helvetica Neue',Arial,sans-serif;}
+table.apps{width:100%;border-collapse:collapse;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:10px;overflow:hidden;font-size:13px;}
+table.apps th{text-align:left;padding:11px 12px;background:#faf6ef;color:var(--ink-soft);font-weight:600;font-size:11px;font-family:'Helvetica Neue',Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #eae7e0;cursor:pointer;user-select:none;white-space:nowrap;}
+table.apps th:hover{background:#f3ede2;color:var(--ink);}
+table.apps th.sorted::after{content:' ▾';color:var(--clay);}
+table.apps th.sorted.asc::after{content:' ▴';color:var(--clay);}
+table.apps td{padding:11px 12px;border-bottom:1px solid #f0ede6;vertical-align:middle;}
+table.apps tr:last-child td{border-bottom:none;}
+table.apps tr:hover td{background:#faf6ef;}
+table.apps td.ref{font-family:monospace;color:var(--ink-soft);font-size:12px;white-space:nowrap;}
+table.apps td.days{text-align:right;font-variant-numeric:tabular-nums;}
+table.apps .applicant{font-weight:600;}
+table.apps .idea{color:var(--ink-soft);font-size:12px;display:block;margin-top:2px;}
+.row-clickable{cursor:pointer;}
+.empty-row td{text-align:center;padding:32px;color:var(--ink-soft);}
+
+/* ── Pagination ── */
+.pagination{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:16px;}
+.pagination button{padding:6px 12px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;font-size:13px;}
+.pagination button.active{background:var(--clay);color:#fff;border-color:var(--clay);}
+.pagination button:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Detail modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:14px;max-width:680px;width:100%;padding:28px 32px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal .close{float:right;font-size:24px;color:#999;background:none;border:0;cursor:pointer;line-height:1;}
+.modal .close:hover{color:var(--clay);}
+.modal h3{margin:0 0 4px;font-size:1.2rem;}
+.modal .ref-id{font-family:monospace;color:var(--ink-soft);font-size:12px;margin-bottom:18px;}
+.modal .grid{display:grid;grid-template-columns:140px 1fr;gap:8px 18px;font-size:13px;margin-top:14px;}
+.modal .grid .k{color:var(--ink-soft);font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding-top:2px;}
+.modal .grid .v{color:var(--ink);}
+.modal h4{margin:22px 0 6px;font-size:.85rem;color:var(--clay);text-transform:uppercase;letter-spacing:.08em;font-family:'Helvetica Neue',Arial,sans-serif;}
+
+/* ── KPI tweaks ── */
+.kpi-grid{margin-top:16px;}
+</style>
+</head>
+<body class="locked">
+<div id="site-header"></div>
+
+<!-- ═══════════════════════ GATE ═══════════════════════ -->
+<section id="dash-gate">
+  <div class="container">
+    <div class="box">
+      <span class="kicker">Restricted access</span>
+      <h2>Government dashboard</h2>
+      <p>This area is for authorised officials only. Enter the access password to continue.</p>
+      <form id="dash-gate-form" autocomplete="off">
+        <input type="password" id="dash-gate-pw" placeholder="Password" autofocus required>
+        <button type="submit">Unlock dashboard</button>
+        <div class="err" id="dash-gate-err"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ DASHBOARD ═══════════════════════ -->
+<div id="dash-content">
+<section>
+  <div class="container">
+
+    <div class="dash-header">
+      <div>
+        <span class="kicker" style="color:var(--clay);text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-family:'Helvetica Neue',Arial,sans-serif;">For government officials</span>
+        <h1 style="margin:4px 0 0;">RAMP — Submitted Applications</h1>
+        <p style="color:var(--ink-soft);margin:6px 0 0;font-size:.95rem;max-width:720px;">
+          Live view of every idea submitted under the RAMP programme across Himachal Pradesh, with its current review status and which implementation partner is handling it.
+        </p>
+      </div>
+      <div class="last-updated" id="last-updated-badge">Last updated: <strong id="last-updated-val">loading…</strong></div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="lbl">Total applications</div>
+        <div class="val" id="k-sub">—</div>
+        <div class="delta">across all centres</div>
+      </div>
+      <div class="kpi clay">
+        <div class="lbl">Accepted for incubation</div>
+        <div class="val" id="k-acc">—</div>
+        <div class="delta" id="k-acc-pct">—</div>
+      </div>
+      <div class="kpi" style="border-top-color:#2c4370;">
+        <div class="lbl">Pending review</div>
+        <div class="val" id="k-pend">—</div>
+        <div class="delta" id="k-over-note" style="color:#8c3000;">— overdue (&gt;21 days)</div>
+      </div>
+      <div class="kpi gold">
+        <div class="lbl">Avg. response time</div>
+        <div class="val" id="k-time">—</div>
+        <div class="delta">days from submission to decision</div>
+      </div>
+      <div class="kpi leaf">
+        <div class="lbl">Rejected</div>
+        <div class="val" id="k-rej">—</div>
+        <div class="delta" id="k-rej-pct">—</div>
+      </div>
+      <div class="kpi" style="border-top-color:#7a4a00;">
+        <div class="lbl">Under review</div>
+        <div class="val" id="k-rev">—</div>
+        <div class="delta">partner acknowledged receipt</div>
+      </div>
+    </div>
+
+    <!-- 4 Implementation Partner cards (click to filter) -->
+    <h2 style="font-size:1.05rem;margin:30px 0 0;">Implementation partners</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin:4px 0 0;">Click a partner to filter the application list below.</p>
+    <div class="partner-cards" id="partner-cards"></div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Applications & outcomes by implementation partner</h3>
+        <div class="chart-wrap" style="height:280px;"><canvas id="bar-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Status breakdown</h3>
+        <div class="chart-wrap" style="height:280px;"><canvas id="doughnut-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="form-row">
+        <label for="f-search">Search (name, idea, ref ID)</label>
+        <input type="text" id="f-search" placeholder="e.g. RAMP-2025-012 or pickle">
+      </div>
+      <div class="form-row">
+        <label for="f-partner">Implementation partner</label>
+        <select id="f-partner"><option value="">All partners</option></select>
+      </div>
+      <div class="form-row">
+        <label for="f-dist">District</label>
+        <select id="f-dist"><option value="">All districts</option></select>
+      </div>
+      <div class="form-row">
+        <label for="f-status">Status</label>
+        <select id="f-status">
+          <option value="">All statuses</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Pending">Pending</option>
+          <option value="Overdue">Overdue</option>
+          <option value="Under review">Under review</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+      <button class="reset-btn" id="reset-filters">Reset</button>
+    </div>
+
+    <!-- Application list (PRIMARY) -->
+    <div class="apps-section">
+      <div class="hdr">
+        <h2>Submitted applications</h2>
+        <div class="apps-count" id="apps-count">—</div>
+      </div>
+      <table class="apps" id="apps-table">
+        <thead>
+          <tr>
+            <th data-sort="id">Ref ID</th>
+            <th data-sort="name">Applicant</th>
+            <th data-sort="district">District</th>
+            <th data-sort="partner">Implementation partner</th>
+            <th data-sort="sector">Sector</th>
+            <th data-sort="submDate" class="sorted">Submitted</th>
+            <th data-sort="status">Status</th>
+            <th data-sort="avgDays" class="num">Response</th>
+          </tr>
+        </thead>
+        <tbody id="apps-tbody"></tbody>
+      </table>
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+    <p class="help" style="margin-top:20px;font-size:13px;color:var(--ink-soft);">
+      Data is read live from the RAMP master Google Sheet. Click any application row for full details. Applications still pending more than 21 days after submission are flagged <span class="badge badge-overdue">Overdue</span> so officials can see which centres are slow to respond.
+    </p>
+  </div>
+</section>
+</div><!-- /dash-content -->
+
+<!-- ─── Detail modal ─── -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal">
+    <button class="close" id="modal-close">&times;</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="site-footer"></div>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+mountChrome('dashboard');
+
+/* ─── Gate ─── */
+(function(){
+  var PW = 'hpramp@admin', KEY = 'ramp-dash-unlocked';
+  function unlock(){ document.body.classList.remove('locked'); }
+  if (sessionStorage.getItem(KEY)==='1') unlock();
+  document.getElementById('dash-gate-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    var pw = document.getElementById('dash-gate-pw');
+    if(pw.value===PW){ sessionStorage.setItem(KEY,'1'); unlock(); }
+    else{ document.getElementById('dash-gate-err').textContent='Incorrect password. Please try again.'; pw.value=''; pw.focus(); }
+  });
+})();
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   RAMP Government Dashboard — applications-first view
+   ─────────────────────────────────────────────────────────────── */
+
+const SHEET_CSV_URL = ''; // ← paste published Google Sheet CSV here when live
+
+/* ─── The four implementation partners ─── */
+const PARTNERS = [
+  { name: 'IIT Mandi Catalyst',  url: 'https://www.iitmandicatalyst.in/',    short: 'IIT Mandi Catalyst' },
+  { name: 'SkillLabs',            url: 'https://skilllabs.net/',              short: 'SkillLabs' },
+  { name: 'The Planet Education', url: 'https://theplaneteducation.net/our-team.php', short: 'Planet Education' },
+  { name: 'RCED India',           url: 'https://rcedindia.com/',              short: 'RCED India' }
+];
+
+/* ─── Demo applications (used until SHEET_CSV_URL is set) ─── */
+const DEMO_APPS = (function(){
+  const { DISTRICTS } = window.RAMP_DATA;
+  const sectors = ['Agri-Tech','Clean Energy','Tourism & Travel','Handicrafts','Health & Wellness','Food Processing','E-waste','Digital Services','Textile','Rural Services'];
+  const stages  = ['Idea Stage','Prototype ready','Early Revenue','Concept only'];
+  const ideas = [
+    'Pine-needle handicraft unit','Persimmon wine micro-enterprise','Sea-buckthorn juice processing',
+    'E-waste recycling aggregator','ATV booking platform','Organic lentils & millet farm',
+    'Mobile EV charging van','Phulkari embroidery collective','Drone spray service for orchards',
+    'Mountain pickle kitchen','Tent-house aggregator','Eco-tourism homestay network',
+    'Cold-storage micro-unit','Natural cosmetics from herbs','Medicine home delivery',
+    'Solar dryer for apricots','Wool spinning cooperative','Digital bookkeeping app for shopkeepers',
+    'Second-hand tyre aggregator','Herbal tea brand','Bamboo furniture workshop',
+    'Community bakery','Goat farming network','Trout fish processing','Handicraft e-store',
+    'Rural wi-fi kiosk','Local courier service','Mushroom cultivation kit',
+    'Rainwater harvesting unit','Medicinal plant nursery','Honey processing co-op',
+    'Apple cider micro-brewery','Kullu-shawl direct-to-consumer','Smart bee-keeping kit'
+  ];
+  const names = ['Ravi Kumar','Priya Devi','Suresh Thakur','Anita Rani','Mohan Lal','Savita Sharma','Deepak Negi','Kavita Chauhan','Rakesh Verma','Sunita Devi','Anil Bhatt','Geeta Kumari','Vijay Sharma','Pooja Thakur','Naresh Kumar','Reena Devi'];
+  function rng(seed){ return ()=>(seed=(seed*9301+49297)%233280)/233280; }
+  function fakeDate(daysAgo){ const d=new Date(); d.setDate(d.getDate()-daysAgo); return d.toISOString().slice(0,10); }
+  function daysAgo(s){ return Math.round((Date.now()-new Date(s))/(86400000)); }
+
+  const r = rng(42);
+  const apps = [];
+  const total = 140; // ~140 demo applications
+  for(let i=1;i<=total;i++){
+    const submDays = Math.floor(r()*100)+1;
+    const submDate = fakeDate(submDays);
+    const da = daysAgo(submDate);
+    const partner = PARTNERS[Math.floor(r()*PARTNERS.length)].name;
+    const district = DISTRICTS[Math.floor(r()*DISTRICTS.length)];
+    let status, respDate=null, avgDays=null;
+    const roll=r();
+    if(roll<0.30){ status='Accepted'; const rd=Math.floor(r()*15)+1; respDate=fakeDate(Math.max(0,submDays-rd)); avgDays=rd; }
+    else if(roll<0.48){ status='Rejected'; const rd=Math.floor(r()*12)+1; respDate=fakeDate(Math.max(0,submDays-rd)); avgDays=rd; }
+    else if(roll<0.56){ status='Under review'; }
+    else if(da>21){ status='Overdue'; }
+    else { status='Pending'; }
+    apps.push({
+      id: 'RAMP-2025-'+String(i).padStart(3,'0'),
+      partner, district,
+      name: names[Math.floor(r()*names.length)],
+      phone: '98'+Math.floor(r()*100000000).toString().padStart(8,'0'),
+      email: 'applicant'+i+'@example.com',
+      ideaTitle: ideas[Math.floor(r()*ideas.length)],
+      description: 'Applicant proposes to set up a small enterprise leveraging local resources and skills. Plans include local sourcing, training in the community, and a phased rollout starting with the home district.',
+      sector: sectors[Math.floor(r()*sectors.length)],
+      stage: stages[Math.floor(r()*stages.length)],
+      submDate, status, respDate, avgDays,
+      reason: status==='Accepted' ? 'Strong local market fit; will invite for Phase B visit.' :
+              status==='Rejected' ? 'Insufficient market validation; encouraged to reapply after prototype.' :
+              status==='Under review' ? 'Partner has begun evaluation; additional information requested.' : null,
+      respondedBy: respDate ? PARTNERS.find(p=>p.name===partner).short.toLowerCase().replace(/\s/g,'')+'@partner.in' : null
+    });
+  }
+  return apps;
+})();
+
+/* ─── CSV parser ─── */
+function parseCSV(text){
+  const lines = text.trim().split('\n');
+  if(lines.length<2) return [];
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line=>{
+    const vals = line.match(/("(?:[^"]|"")*"|[^,]*)(?:,|$)/g) || [];
+    const cells = vals.map(v=>v.replace(/,$/,'').replace(/^"|"$/g,'').replace(/""/g,'"').trim());
+    const obj = {};
+    headers.forEach((h,i)=>obj[h]=cells[i]||'');
+    const subm = obj['Added time']||obj['Submitted']||'';
+    const da = subm ? Math.round((Date.now()-new Date(subm))/86400000) : 99;
+    const st = obj['Status']||'Pending';
+    return {
+      id: obj['ID']||'—',
+      partner: obj['Implementation partner']||'',
+      district: obj['District']||'',
+      name: obj['Name']||'',
+      phone: obj['Phone']||'',
+      email: obj['Email']||'',
+      ideaTitle: obj['Idea title']||'',
+      description: obj['Idea description']||'',
+      sector: obj['Sector']||'',
+      stage: obj['Startup stage']||'',
+      submDate: subm,
+      status: (st==='Pending' && da>21) ? 'Overdue' : st,
+      respDate: obj['Response date']||null,
+      avgDays: (obj['Response date']&&subm) ? Math.round((new Date(obj['Response date'])-new Date(subm))/86400000) : null,
+      reason: obj['Reason']||null,
+      respondedBy: obj['Responded by']||null
+    };
+  }).filter(r=>r.id && r.id!=='—');
+}
+
+/* ─── State ─── */
+let allApps = [];
+let sortKey = 'submDate', sortAsc = false;
+let currentPage = 1;
+const PAGE_SIZE = 15;
+let barChart=null, doughnutChart=null;
+
+/* ─── Helpers ─── */
+function statusBadge(s){
+  const map={Accepted:'badge-accepted',Rejected:'badge-rejected',Pending:'badge-pending','Under review':'badge-review',Overdue:'badge-overdue'};
+  return `<span class="badge ${map[s]||'badge-pending'}">${s}</span>`;
+}
+function counts(apps){
+  const c={total:apps.length,Accepted:0,Rejected:0,Pending:0,'Under review':0,Overdue:0,daysSum:0,daysCount:0};
+  apps.forEach(a=>{
+    c[a.status]=(c[a.status]||0)+1;
+    if(a.avgDays!=null){c.daysSum+=a.avgDays;c.daysCount++;}
+  });
+  c.avgDays = c.daysCount ? +(c.daysSum/c.daysCount).toFixed(1) : null;
+  return c;
+}
+function filtered(){
+  const q = (document.getElementById('f-search').value||'').toLowerCase().trim();
+  const fp = document.getElementById('f-partner').value;
+  const fd = document.getElementById('f-dist').value;
+  const fs = document.getElementById('f-status').value;
+  return allApps.filter(a =>
+    (!fp||a.partner===fp) &&
+    (!fd||a.district===fd) &&
+    (!fs||a.status===fs) &&
+    (!q || (a.id+' '+a.name+' '+a.ideaTitle+' '+a.sector).toLowerCase().includes(q))
+  );
+}
+function sorted(list){
+  const k = sortKey, asc = sortAsc;
+  return [...list].sort((a,b)=>{
+    let va=a[k], vb=b[k];
+    if(va==null) va=''; if(vb==null) vb='';
+    if(k==='submDate') { va=new Date(va).getTime()||0; vb=new Date(vb).getTime()||0; }
+    if(typeof va==='string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return asc ? va-vb : vb-va;
+  });
+}
+
+/* ─── Render ─── */
+function render(){
+  const list = filtered();
+  const c = counts(list);
+
+  /* KPI strip */
+  document.getElementById('k-sub').textContent = c.total.toLocaleString('en-IN');
+  document.getElementById('k-acc').textContent = (c.Accepted||0).toLocaleString('en-IN');
+  document.getElementById('k-acc-pct').textContent = c.total ? Math.round(c.Accepted/c.total*100)+'% acceptance rate' : '—';
+  document.getElementById('k-pend').textContent = (c.Pending||0).toLocaleString('en-IN');
+  document.getElementById('k-over-note').textContent = (c.Overdue||0)+' overdue (>21 days)';
+  document.getElementById('k-time').textContent = c.avgDays!=null ? c.avgDays+' days' : '—';
+  document.getElementById('k-rej').textContent = (c.Rejected||0).toLocaleString('en-IN');
+  document.getElementById('k-rej-pct').textContent = c.total ? Math.round((c.Rejected||0)/c.total*100)+'% of submissions' : '—';
+  document.getElementById('k-rev').textContent = (c['Under review']||0).toLocaleString('en-IN');
+
+  /* Partner cards (always 4 — counts over the ENTIRE dataset, not filtered) */
+  const pcWrap = document.getElementById('partner-cards');
+  const activePartner = document.getElementById('f-partner').value;
+  pcWrap.innerHTML = PARTNERS.map(p=>{
+    const pApps = allApps.filter(a=>a.partner===p.name);
+    const pc = counts(pApps);
+    return `<div class="partner-card ${activePartner===p.name?'active':''}" data-partner="${p.name}">
+      <div class="pc-name">${p.name}</div>
+      <a href="${p.url}" target="_blank" rel="noopener" class="pc-link" onclick="event.stopPropagation()">${p.url.replace(/^https?:\/\//,'')}</a>
+      <div class="pc-total">${pc.total}</div>
+      <div class="pc-tot-lbl">applications</div>
+      <div class="pc-mini">
+        <span class="m-acc">✓ ${pc.Accepted||0}</span>
+        <span class="m-pend">⏳ ${(pc.Pending||0)+(pc['Under review']||0)}</span>
+        <span class="m-rej">✕ ${pc.Rejected||0}</span>
+        ${pc.Overdue?`<span class="m-over">! ${pc.Overdue}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  pcWrap.querySelectorAll('.partner-card').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const sel = document.getElementById('f-partner');
+      sel.value = (sel.value===el.dataset.partner) ? '' : el.dataset.partner;
+      currentPage = 1;
+      render();
+    });
+  });
+
+  /* Apps table */
+  const sortedList = sorted(list);
+  const totalPages = Math.max(1, Math.ceil(sortedList.length/PAGE_SIZE));
+  if(currentPage>totalPages) currentPage=totalPages;
+  const pageRows = sortedList.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  document.getElementById('apps-count').textContent =
+    list.length ? `Showing ${(currentPage-1)*PAGE_SIZE+1}–${Math.min(currentPage*PAGE_SIZE,list.length)} of ${list.length}` : '0 applications';
+
+  document.getElementById('apps-tbody').innerHTML = pageRows.length ? pageRows.map(a=>`
+    <tr class="row-clickable" data-id="${a.id}">
+      <td class="ref">${a.id}</td>
+      <td>
+        <div class="applicant">${a.name}</div>
+        <span class="idea">${a.ideaTitle}</span>
+      </td>
+      <td>${a.district}</td>
+      <td style="font-size:12px;">${a.partner}</td>
+      <td><span class="badge" style="background:#f0ede6;color:#555;text-transform:none;font-weight:500;">${a.sector}</span></td>
+      <td style="font-size:12px;color:var(--ink-soft);white-space:nowrap;">${a.submDate}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td class="days">${a.avgDays!=null ? a.avgDays+' d' : '—'}</td>
+    </tr>
+  `).join('') : `<tr class="empty-row"><td colspan="8">No applications match the current filters.</td></tr>`;
+
+  document.querySelectorAll('#apps-tbody .row-clickable').forEach(tr=>{
+    tr.addEventListener('click',()=>openModal(tr.dataset.id));
+  });
+
+  /* Sort header indicators */
+  document.querySelectorAll('#apps-table th').forEach(th=>{
+    th.classList.toggle('sorted', th.dataset.sort===sortKey);
+    th.classList.toggle('asc', th.dataset.sort===sortKey && sortAsc);
+  });
+
+  /* Pagination */
+  const pag = document.getElementById('pagination');
+  if(totalPages<=1){ pag.innerHTML=''; }
+  else {
+    let html=`<button ${currentPage===1?'disabled':''} data-p="${currentPage-1}">‹ Prev</button>`;
+    const start=Math.max(1,currentPage-2), end=Math.min(totalPages,currentPage+2);
+    if(start>1) html+=`<button data-p="1">1</button>${start>2?'<span style="padding:0 4px;">…</span>':''}`;
+    for(let i=start;i<=end;i++) html+=`<button class="${i===currentPage?'active':''}" data-p="${i}">${i}</button>`;
+    if(end<totalPages) html+=`${end<totalPages-1?'<span style="padding:0 4px;">…</span>':''}<button data-p="${totalPages}">${totalPages}</button>`;
+    html+=`<button ${currentPage===totalPages?'disabled':''} data-p="${currentPage+1}">Next ›</button>`;
+    pag.innerHTML=html;
+    pag.querySelectorAll('button[data-p]').forEach(b=>{
+      b.addEventListener('click',()=>{ currentPage=+b.dataset.p; render(); window.scrollTo({top:document.querySelector('.apps-section').offsetTop-20,behavior:'smooth'}); });
+    });
+  }
+
+  /* Charts — based on filtered list */
+  renderCharts(list);
+}
+
+function renderCharts(list){
+  // Bar: 4 partners × stacked status
+  const labels = PARTNERS.map(p=>p.short);
+  const acc=[],rej=[],pend=[],over=[];
+  PARTNERS.forEach(p=>{
+    const pc = counts(list.filter(a=>a.partner===p.name));
+    acc.push(pc.Accepted||0);
+    rej.push(pc.Rejected||0);
+    pend.push((pc.Pending||0)+(pc['Under review']||0));
+    over.push(pc.Overdue||0);
+  });
+  if(barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById('bar-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Accepted', data:acc, backgroundColor:'#4caf7d', borderRadius:4},
+      {label:'Pending / Under review', data:pend, backgroundColor:'#90a4c5', borderRadius:4},
+      {label:'Overdue', data:over, backgroundColor:'#f4a261', borderRadius:4},
+      {label:'Rejected', data:rej, backgroundColor:'#e57373', borderRadius:4}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},tooltip:{mode:'index',intersect:false}},
+      scales:{
+        x:{stacked:true, ticks:{font:{size:12}}},
+        y:{stacked:true, beginAtZero:true, ticks:{precision:0,font:{size:11}},grid:{color:'rgba(0,0,0,.05)'}}
+      }
+    }
+  });
+
+  const c = counts(list);
+  if(doughnutChart) doughnutChart.destroy();
+  doughnutChart = new Chart(document.getElementById('doughnut-chart').getContext('2d'),{
+    type:'doughnut',
+    data:{
+      labels:['Accepted','Rejected','Pending','Under review','Overdue'],
+      datasets:[{
+        data:[c.Accepted||0,c.Rejected||0,c.Pending||0,c['Under review']||0,c.Overdue||0],
+        backgroundColor:['#4caf7d','#e57373','#90a4c5','#ffd54f','#f4a261'],
+        borderWidth:2, borderColor:'#fff'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{
+        legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>{
+          const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);
+          return ` ${ctx.label}: ${ctx.parsed} (${tot?Math.round(ctx.parsed/tot*100):0}%)`;
+        }}}
+      }
+    }
+  });
+}
+
+/* ─── Modal ─── */
+function openModal(id){
+  const a = allApps.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('modal-body').innerHTML = `
+    <h3>${a.ideaTitle}</h3>
+    <div class="ref-id">${a.id} · submitted ${a.submDate}</div>
+    <div>${statusBadge(a.status)}</div>
+
+    <h4>Applicant</h4>
+    <div class="grid">
+      <div class="k">Name</div><div class="v">${a.name}</div>
+      <div class="k">Phone</div><div class="v">${a.phone||'—'}</div>
+      <div class="k">Email</div><div class="v">${a.email||'—'}</div>
+      <div class="k">District</div><div class="v">${a.district}</div>
+    </div>
+
+    <h4>Idea</h4>
+    <div class="grid">
+      <div class="k">Sector</div><div class="v">${a.sector}</div>
+      <div class="k">Startup stage</div><div class="v">${a.stage}</div>
+      <div class="k">Description</div><div class="v">${a.description||'—'}</div>
+    </div>
+
+    <h4>Review</h4>
+    <div class="grid">
+      <div class="k">Implementation partner</div><div class="v">${a.partner}</div>
+      <div class="k">Response date</div><div class="v">${a.respDate||'—'}</div>
+      <div class="k">Response time</div><div class="v">${a.avgDays!=null ? a.avgDays+' days' : 'Awaiting response'}</div>
+      <div class="k">Reason</div><div class="v">${a.reason||'—'}</div>
+      <div class="k">Responded by</div><div class="v" style="font-family:monospace;font-size:12px;">${a.respondedBy||'—'}</div>
+    </div>
+  `;
+  document.getElementById('modal-bg').classList.add('open');
+}
+document.getElementById('modal-close').addEventListener('click',()=>document.getElementById('modal-bg').classList.remove('open'));
+document.getElementById('modal-bg').addEventListener('click',e=>{ if(e.target.id==='modal-bg') e.currentTarget.classList.remove('open'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.getElementById('modal-bg').classList.remove('open'); });
+
+/* ─── Init ─── */
+function setupFilters(){
+  const distSel = document.getElementById('f-dist');
+  const partSel = document.getElementById('f-partner');
+  [...new Set(allApps.map(a=>a.district))].sort().forEach(d=>{
+    const o=document.createElement('option'); o.value=o.textContent=d; distSel.appendChild(o);
+  });
+  PARTNERS.forEach(p=>{ const o=document.createElement('option'); o.value=o.textContent=p.name; partSel.appendChild(o); });
+
+  ['f-search','f-partner','f-dist','f-status'].forEach(id=>{
+    const ev = id==='f-search' ? 'input' : 'change';
+    document.getElementById(id).addEventListener(ev,()=>{ currentPage=1; render(); });
+  });
+  document.getElementById('reset-filters').addEventListener('click',()=>{
+    document.getElementById('f-search').value='';
+    document.getElementById('f-partner').value='';
+    document.getElementById('f-dist').value='';
+    document.getElementById('f-status').value='';
+    currentPage=1; render();
+  });
+  document.querySelectorAll('#apps-table th[data-sort]').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const k = th.dataset.sort;
+      if(sortKey===k) sortAsc = !sortAsc;
+      else { sortKey=k; sortAsc = (k==='name'||k==='district'||k==='partner'||k==='sector'||k==='id'); }
+      render();
+    });
+  });
+}
+
+async function init(){
+  let apps = null;
+  if(SHEET_CSV_URL){
+    try{
+      const res = await fetch(SHEET_CSV_URL);
+      apps = parseCSV(await res.text());
+      const ts = new Date().toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      document.getElementById('last-updated-val').textContent = ts;
+    }catch(e){ apps=null; }
+  }
+  if(!apps || !apps.length){
+    apps = DEMO_APPS;
+    document.getElementById('last-updated-val').textContent = 'Demo data — connect Google Sheet to go live';
+  }
+  allApps = apps;
+  setupFilters();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

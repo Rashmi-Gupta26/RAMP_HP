@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Institute — RAMP Himachal Pradesh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="crumbs">
+  <div class="container">
+    <a href="index.html">Home</a> ›
+    <a href="institutes.html">Institutes</a> ›
+    <span id="crumb-name">Institute</span>
+  </div>
+</div>
+
+<section class="inst-header">
+  <div class="container">
+    <div class="where" id="inst-where">—</div>
+    <h1 id="inst-name">Loading…</h1>
+    <p id="inst-about" style="color:var(--ink-soft); font-size:1.05rem; max-width:760px;"></p>
+  </div>
+</section>
+
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="inst-body">
+      <div class="col-main">
+        <h3>About this centre</h3>
+        <p id="inst-about-full">—</p>
+
+        <h3>Programme activities</h3>
+        <ul>
+          <li>Sensitization workshops on the startup ecosystem</li>
+          <li>Entrepreneurship Development Programme — digital marketing, financial literacy, Business Model Canvas</li>
+          <li>Idea formulation bootcamps (Phase A)</li>
+          <li>Exposure visits to IIT Mandi labs (Phase B, on selection)</li>
+          <li>Faculty training and SHG linkage activities</li>
+        </ul>
+
+        <h3>How to apply through this centre</h3>
+        <p>If your idea is rooted in this geography, you can submit it through our
+          <a href="submit.html">online idea form</a>. It will be routed to the representative at this centre,
+          who will reach out by phone or email within 7–10 working days.</p>
+      </div>
+      <aside class="col-side">
+        <div class="fact-box">
+          <dl>
+            <dt>Implementing agency</dt>
+            <dd id="f-agency">—</dd>
+            <dt>Cohort</dt>
+            <dd id="f-cohort">—</dd>
+            <dt>Participants</dt>
+            <dd id="f-part">—</dd>
+            <dt>Faculty engaged</dt>
+            <dd id="f-fac">—</dd>
+            <dt>SHGs</dt>
+            <dd id="f-shg">—</dd>
+            <dt>Website</dt>
+            <dd id="f-web">—</dd>
+          </dl>
+        </div>
+        <div class="fact-box" style="margin-top:18px;">
+          <h4 style="margin:0 0 10px;">Representative</h4>
+          <div id="f-contact" class="contact-line">—</div>
+        </div>
+        <div class="fact-box" style="margin-top:18px;">
+          <h4 style="margin:0 0 10px;">Address</h4>
+          <div id="f-addr" style="font-size:14px; color:var(--ink-soft);">—</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  mountChrome('institutes');
+  const { INSTITUTES } = window.RAMP_DATA;
+  const id = getParam('id');
+  const it = INSTITUTES.find(x => x.id === id);
+  const $ = (i) => document.getElementById(i);
+
+  if (!it) {
+    $('inst-name').textContent = 'Institute not found';
+    $('inst-about').textContent = 'The institute you requested does not exist in our records. Please return to the institutes page.';
+  } else {
+    document.title = it.name + ' — RAMP Himachal Pradesh';
+    $('crumb-name').textContent = it.name;
+    $('inst-where').textContent = it.district.toUpperCase() + ' DISTRICT · COHORT ' + it.cohort;
+    $('inst-name').textContent = it.name;
+    $('inst-about').textContent = it.about || '';
+    $('inst-about-full').textContent = it.about || 'This centre participates in the RAMP programme.';
+
+    $('f-agency').textContent = it.agency || '—';
+    $('f-cohort').textContent = 'Phase ' + (it.cohort === 1 ? 'I' : 'II');
+    $('f-part').textContent = it.participants ? Math.round(it.participants).toLocaleString('en-IN') : '—';
+    $('f-fac').textContent = it.faculty ? it.faculty : '—';
+    $('f-shg').textContent = it.shg ? it.shg : (it.shgNote || '—');
+    $('f-web').innerHTML = it.website ? `<a href="${it.website}" target="_blank" rel="noopener">${it.website.replace(/^https?:\/\//,'').replace(/\/$/,'')}</a>` : '—';
+
+    if (it.contact) {
+      $('f-contact').innerHTML = `
+        <div style="font-weight:600;">${it.contact.name || '—'}</div>
+        <div style="margin-top:4px; font-size:14px;">
+          ${it.contact.phone ? `📞 <a href="tel:${it.contact.phone.replace(/\s+/g,'')}">${it.contact.phone}</a><br>` : ''}
+          ${it.contact.email ? `✉ <a href="mailto:${it.contact.email}">${it.contact.email}</a>` : ''}
+        </div>
+      `;
+    }
+    $('f-addr').textContent = it.address || '—';
+  }
+</script>
+</body>
+</html>

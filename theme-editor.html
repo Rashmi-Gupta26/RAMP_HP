@@ -1,0 +1,1458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Theme Editor — RAMP (Internal)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #faf6ef;
+    --paper: #ffffff;
+    --ink: #1f2933;
+    --ink-soft: #4a5562;
+    --line: #e3dccd;
+    --teal: #1f5f5b;
+    --teal-dark: #154845;
+    --clay: #b54d18;
+    --clay-soft: #f3e0d2;
+    --gold: #b9881c;
+    --leaf: #3d6e3a;
+    --maroon: #7a1f2b;
+    --focus: #b54d18;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f4f6; color: #111;
+    display: grid; grid-template-columns: 380px 1fr; min-height: 100vh;
+  }
+  .panel {
+    background: #fff; border-right: 1px solid #e5e7eb;
+    padding: 20px; overflow-y: auto; max-height: 100vh;
+  }
+  .panel h1 { font-size: 18px; margin: 0 0 4px; }
+  .panel .sub { font-size: 12px; color: #6b7280; margin-bottom: 18px; }
+  .group { margin-bottom: 18px; border-top: 1px solid #eee; padding-top: 14px; }
+  .group h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin: 0 0 10px; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .row label { flex: 1; font-size: 13px; }
+  .row input[type=color] { width: 40px; height: 28px; border: 1px solid #d1d5db; border-radius: 4px; padding: 0; background: #fff; cursor: pointer; }
+  .row input[type=text] { width: 90px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 4px; }
+  select, .row input[type=text].full, textarea.full { width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; font-family: ui-monospace, Menlo, monospace; resize: vertical; }
+  .actions { position: sticky; bottom: 0; background: #fff; padding-top: 14px; margin-top: 14px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 8px; }
+  button {
+    padding: 10px 14px; border-radius: 6px; border: 1px solid #d1d5db;
+    background: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  button.primary { background: #1f5f5b; color: #fff; border-color: #1f5f5b; }
+  button.primary:hover { background: #154845; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { font-size: 12px; color: #6b7280; min-height: 16px; }
+  .status.ok { color: #15803d; }
+  .status.err { color: #b91c1c; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
+    font-size: 13px; color: #111;
+    max-width: 100%;
+  }
+  .chip .x { color: #9ca3af; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+  .chip .x:hover { color: #b91c1c; }
+  .log-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 4px;
+    margin-bottom: 4px; background: #fafafa;
+  }
+  .log-row .ts { flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #374151; }
+  .log-row .desc { font-size: 11px; color: #6b7280; }
+  .log-row button { padding: 3px 8px; font-size: 11px; }
+  .preview { display: flex; flex-direction: column; max-height: 100vh; }
+  .pv-toolbar { display: flex; gap: 6px; align-items: center; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; }
+  .pv-toolbar button { padding: 5px 10px; font-size: 12px; font-weight: 500; border-radius: 4px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; }
+  .pv-toolbar button.active { background: #1f5f5b; color: #fff; border-color: #1f5f5b; }
+  .pv-toolbar .sep { flex: 1; }
+  .pv-toolbar .meta { font-size: 11px; color: #6b7280; font-family: ui-monospace, Menlo, monospace; }
+  #previewHost { display: block; min-height: 100%; background: #fff; }
+  .pv-empty { padding: 28px; color: #6b7280; font-size: 13px; }
+  /* First-run overlay — covers the page until the user grants folder access. */
+  .welcome {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(17,24,39,0.55); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .welcome .card {
+    background: #fff; border-radius: 12px; padding: 32px 36px;
+    max-width: 460px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .welcome h2 { margin: 0 0 10px; font-size: 20px; color: #111; }
+  .welcome p { margin: 0 0 18px; font-size: 14px; color: #4b5563; line-height: 1.55; }
+  .welcome p.fine { font-size: 12px; color: #9ca3af; margin-top: 14px; }
+  .welcome button.primary { padding: 12px 24px; font-size: 14px; }
+  .welcome .err { color: #b91c1c; font-size: 12px; margin-top: 10px; min-height: 14px; }
+</style>
+</head>
+<body>
+
+<div class="welcome" id="welcomeOverlay" style="display:none;">
+  <div class="card">
+    <h2>Connect to your project folder</h2>
+    <p>Grant the editor one-time access to this folder so it can edit <code>css/styles.css</code> in place and keep a history in <code>log/</code>. Your browser will remember the choice — you'll only do this once.</p>
+    <button class="primary" id="welcomeConnect">Connect folder</button>
+    <p class="fine">No internet access, no data leaves your machine. You can revoke any time via the <strong>Forget</strong> button.</p>
+    <div class="err" id="welcomeErr"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h1>Theme Editor</h1>
+  <div class="sub">Internal tool — edits <code>css/styles.css</code></div>
+
+  <div class="group">
+    <h2>File</h2>
+    <button id="pickBtn">Connect project folder…</button>
+    <button id="forgetBtn" style="margin-left:6px;">Forget</button>
+    <div class="status" id="fileStatus">Not connected yet. Click to grant one-time access to this folder.</div>
+  </div>
+
+  <div class="group">
+    <h2>Change history</h2>
+    <div class="sub" style="margin-top:-4px;margin-bottom:8px;">Every "Apply" snapshots the previous <code>styles.css</code> into <code>log/</code>. Click an entry to revert.</div>
+    <div id="historyList" style="font-size:12px;">No log entries yet.</div>
+    <button id="clearLogBtn" style="margin-top:8px;">Clear log</button>
+  </div>
+
+  <div class="group">
+    <h2>Font library</h2>
+    <div class="sub" style="margin-top:-4px;margin-bottom:8px;">Paste as many Google Fonts embed snippets as you want — one after another. Every family found becomes selectable per section.</div>
+    <textarea id="fontEmbed" class="full" rows="6" placeholder="Paste multiple Google Fonts &lt;link&gt; snippets here…&#10;&#10;You can also paste bare URLs or family names (one per line)."></textarea>
+    <div class="status" id="libraryStatus" style="margin-top:6px;">Library is empty — only preset fonts are available.</div>
+    <div id="libraryChips" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+  </div>
+
+  <div class="group">
+    <h2>Font per section</h2>
+    <div class="sub" style="margin-top:-4px;margin-bottom:8px;">Each slot maps to a part of the site. "(default)" leaves the stylesheet untouched for that section.</div>
+    <div id="slotRows"></div>
+  </div>
+
+  <div class="group">
+    <h2>Colors</h2>
+    <div id="colorRows"></div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="applyBtn">Apply changes to CSS file</button>
+    <button id="resetBtn">Reset to current file</button>
+    <div class="status" id="applyStatus"></div>
+    <div class="sub" style="margin-top:-4px;">Preview updates live as you edit. Nothing is saved to disk until you click <strong>Apply</strong>.</div>
+  </div>
+</div>
+
+<div class="preview">
+  <div class="pv-toolbar">
+    <button data-jump="sec-header" class="active">Header</button>
+    <button data-jump="sec-hero">Hero</button>
+    <button data-jump="sec-stats">Stats</button>
+    <button data-jump="sec-cards">Cards</button>
+    <button data-jump="sec-districts">Districts</button>
+    <button data-jump="sec-table">Table</button>
+    <button data-jump="sec-news">News</button>
+    <button data-jump="sec-kpi">Dashboard</button>
+    <button data-jump="sec-form">Form</button>
+    <button data-jump="sec-footer">Footer</button>
+    <span class="sep"></span>
+    <span class="meta" id="previewMeta">preview · embedded</span>
+  </div>
+  <div id="previewScroll" style="flex:1; overflow-y:auto; background:#e5e7eb;">
+    <div id="previewHost"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// EMBEDDED CSS — snapshot of css/styles.css.
+// The `:root` selector is replaced with `:host` at mount time so the variables
+// land on the shadow host (CSS variables cascade through shadow boundaries).
+// Update this if the real stylesheet changes structurally — colors/fonts will
+// always be live since the editor sets them on the host directly.
+// ============================================================================
+const EMBEDDED_CSS = String.raw`
+/* RAMP Himachal — Stylesheet */
+:root {
+  --bg: #faf6ef;
+  --paper: #ffffff;
+  --ink: #1f2933;
+  --ink-soft: #4a5562;
+  --line: #e3dccd;
+  --teal: #1f5f5b;
+  --teal-dark: #154845;
+  --clay: #b54d18;
+  --clay-soft: #f3e0d2;
+  --gold: #b9881c;
+  --leaf: #3d6e3a;
+  --maroon: #7a1f2b;
+  --focus: #b54d18;
+  --shadow: 0 1px 0 rgba(31,41,51,0.04), 0 6px 18px rgba(31,41,51,0.06);
+  --radius: 4px;
+  --maxw: 1120px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  font-family: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--teal-dark); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--clay); }
+h1, h2, h3, h4 {
+  font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0 0 0.5em;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: 2.3rem; font-weight: 700; }
+h2 { font-size: 1.65rem; font-weight: 700; }
+h3 { font-size: 1.2rem; font-weight: 700; }
+h4 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal-dark); }
+p { margin: 0 0 1em; }
+.container { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+.emblem-strip { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 0; }
+.emblem-strip .container { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.emblem-strip .logos { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.emblem-strip .logos img { height: 48px; width: auto; object-fit: contain; }
+.emblem-strip .gov-line { font-size: 12px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.12em; text-align: right; }
+.emblem-strip .gov-line strong { color: var(--ink); display: block; font-size: 13px; }
+.identity { background: var(--teal); color: #fff; padding: 22px 0; border-bottom: 4px solid var(--gold); }
+.identity .container { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.identity .seal { width: 64px; height: 64px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; padding: 6px; flex-shrink: 0; }
+.identity .seal img { max-height: 100%; }
+.identity .name { color: #fff; margin: 0; font-size: 1.4rem; font-weight: 700; }
+.identity .sub { color: rgba(255,255,255,0.85); font-size: 0.95rem; margin: 2px 0 0; font-style: italic; }
+.nav { background: #fff; border-bottom: 1px solid var(--line); }
+.nav .container { display: flex; align-items: center; justify-content: space-between; }
+.nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; }
+.nav a { display: block; padding: 16px 18px; text-decoration: none; color: var(--ink); font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 3px solid transparent; }
+.nav a:hover { background: #faf3e8; color: var(--clay); }
+.nav a.active { border-bottom-color: var(--clay); color: var(--clay); }
+.nav a.cta { background: var(--clay); color: #fff; }
+.nav a.cta:hover { background: #93400f; color: #fff; }
+.hero { background: linear-gradient(180deg, #fbf4e6 0%, #faf6ef 100%); border-bottom: 1px solid var(--line); padding: 56px 0 40px; }
+.hero .container { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; }
+.hero .eyebrow { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay); margin-bottom: 12px; border-left: 3px solid var(--clay); padding-left: 10px; }
+.hero h1 { font-size: 2.6rem; margin-bottom: 16px; }
+.hero p.lead { font-size: 1.1rem; color: var(--ink-soft); margin-bottom: 24px; }
+.hero .actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 12px 22px; background: var(--clay); color: #fff; border: 1px solid var(--clay); border-radius: var(--radius); text-decoration: none; font-weight: 600; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+.btn:hover { background: #93400f; color: #fff; border-color: #93400f; }
+.btn.ghost { background: transparent; color: var(--teal-dark); border-color: var(--teal-dark); }
+.btn.ghost:hover { background: var(--teal-dark); color: #fff; }
+.btn.small { padding: 8px 14px; font-size: 12px; }
+.carousel { position: relative; border-radius: 4px; overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 4/3; background: var(--ink); }
+.carousel .slides { position: absolute; inset: 0; }
+.carousel .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 800ms ease; background-size: cover; background-position: center; }
+.carousel .slide.active { opacity: 1; }
+.carousel .dots { position: absolute; bottom: 14px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; }
+.carousel .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); border: none; cursor: pointer; }
+.carousel .dot.active { background: #fff; }
+.carousel .caption { position: absolute; bottom: 36px; left: 16px; right: 16px; color: #fff; background: rgba(0,0,0,0.45); padding: 6px 12px; font-size: 13px; border-radius: 3px; font-style: italic; text-align: center; }
+.stats { background: #fff; border-bottom: 1px solid var(--line); padding: 28px 0; }
+.stats .container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.stat { text-align: center; border-right: 1px solid var(--line); padding: 4px 12px; }
+.stat:last-child { border-right: none; }
+.stat .num { font-size: 2.2rem; font-weight: 700; color: var(--teal-dark); font-family: 'Iowan Old Style', Georgia, serif; line-height: 1; }
+.stat .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin-top: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+section { padding: 56px 0; }
+section.alt { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.section-head { max-width: 720px; margin-bottom: 32px; }
+.section-head .kicker { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay); margin-bottom: 10px; }
+.section-head p { color: var(--ink-soft); font-size: 1.05rem; margin: 0; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+.card h3 { margin-top: 0; }
+.pillar { border-top: 4px solid var(--teal); }
+.pillar.clay { border-top-color: var(--clay); }
+.pillar.gold { border-top-color: var(--gold); }
+.pillar.leaf { border-top-color: var(--leaf); }
+.pillar.maroon { border-top-color: var(--maroon); }
+.district-block { border: 1px solid var(--line); background: #fff; margin-bottom: 18px; border-radius: var(--radius); overflow: hidden; }
+.district-head { background: #fbf4e6; border-bottom: 1px solid var(--line); padding: 14px 22px; display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.district-head h2 { margin: 0; font-size: 1.25rem; color: var(--teal-dark); }
+.district-head .count { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+.institute-list { list-style: none; padding: 0; margin: 0; }
+.institute-list li { padding: 16px 22px; border-bottom: 1px dotted var(--line); display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+.institute-list li:last-child { border-bottom: none; }
+.institute-list .name { font-weight: 600; }
+.institute-list .name a { text-decoration: none; color: var(--ink); }
+.institute-list .sub { font-size: 14px; color: var(--ink-soft); margin-top: 2px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--clay-soft); color: var(--clay); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; white-space: nowrap; }
+.tag.cohort-1 { background: #e3eeed; color: var(--teal-dark); }
+.crumbs { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; color: var(--ink-soft); padding: 14px 0; border-bottom: 1px solid var(--line); background: #fff; }
+.crumbs a { color: var(--teal-dark); }
+.inst-header { padding: 40px 0 20px; }
+.inst-header h1 { margin-bottom: 8px; }
+.inst-header .where { color: var(--ink-soft); font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; }
+.inst-body { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; padding-bottom: 56px; }
+.fact-box { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.fact-box dl { margin: 0; }
+.fact-box dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin-top: 12px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.fact-box dt:first-child { margin-top: 0; }
+.fact-box dd { margin: 4px 0 0; font-weight: 600; }
+table.data { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); font-size: 15px; }
+table.data th, table.data td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+table.data th { background: #fbf4e6; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.form-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); max-width: 640px; margin: 0 auto; }
+.form-row { margin-bottom: 18px; }
+.form-row label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-family: 'Helvetica Neue', Arial, sans-serif; }
+.form-row label .req { color: var(--clay); }
+.form-row input, .form-row select, .form-row textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--radius); font-family: inherit; font-size: 16px; background: var(--bg); color: var(--ink); }
+.form-row textarea { min-height: 130px; resize: vertical; }
+.help { font-size: 13px; color: var(--ink-soft); margin-top: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.captcha-box { display: flex; align-items: center; gap: 14px; background: #fbf4e6; border: 1px dashed var(--line); border-radius: var(--radius); padding: 14px 18px; }
+.captcha-q { font-size: 1.3rem; font-weight: 700; color: var(--teal-dark); background: #fff; padding: 6px 14px; border-radius: var(--radius); border: 1px solid var(--line); }
+.captcha-box input { width: 100px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 16px; background: #fff; }
+.notice { padding: 12px 16px; border-radius: var(--radius); margin: 14px 0; font-size: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.notice.err { background: #fbe5dc; color: #7a2a0a; border: 1px solid #e6b9a3; }
+.notice.ok { background: #e3eeed; color: var(--teal-dark); border: 1px solid #bdd6d3; }
+.news-item { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px; margin-bottom: 16px; box-shadow: var(--shadow); border-left: 4px solid var(--clay); }
+.news-item .date { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin-bottom: 4px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.news-item h3 { margin: 0 0 8px; }
+.news-item p { margin: 0; color: var(--ink-soft); }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; border-top: 4px solid var(--teal); }
+.kpi.clay { border-top-color: var(--clay); }
+.kpi.gold { border-top-color: var(--gold); }
+.kpi.leaf { border-top-color: var(--leaf); }
+.kpi .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin-bottom: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.kpi .val { font-size: 2rem; font-weight: 700; color: var(--ink); line-height: 1; }
+.kpi .delta { font-size: 12px; color: var(--leaf); margin-top: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.kpi .delta.down { color: var(--maroon); }
+footer { background: var(--teal-dark); color: #d8e7e5; padding: 40px 0 24px; margin-top: 24px; }
+footer a { color: #fff; }
+footer .container { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; }
+footer h4 { color: #fff; }
+footer ul { list-style: none; padding: 0; margin: 0; }
+footer ul li { padding: 4px 0; font-size: 14px; }
+footer .copy { margin-top: 28px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 13px; color: rgba(255,255,255,0.65); font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; }
+`;
+
+// ============================================================================
+// EMBEDDED PREVIEW HTML — a comprehensive single-scroll replica of the site
+// covering every section/component the editor can re-theme.
+// Image src paths are relative to theme-editor.html (project root), so they
+// work via double-click on file:// as long as the editor stays in that folder.
+// ============================================================================
+const EMBEDDED_HTML = String.raw`
+<section id="sec-header">
+  <div class="emblem-strip">
+    <div class="container">
+      <div class="logos">
+        <img src="images/himachal-govt-logo.png" alt="Government of Himachal Pradesh">
+        <img src="images/ramp-logo.png" alt="RAMP">
+        <img src="images/catalyst-logo.png" alt="IIT Mandi Catalyst">
+        <img src="images/hpced-logo.png" alt="HPCED">
+        <img src="images/Startup-himachal-logo.png" alt="Startup Himachal">
+        <img src="images/world-bank-logo.jpg" alt="World Bank">
+      </div>
+      <div class="gov-line">
+        <strong>Department of Industries</strong>
+        Government of Himachal Pradesh
+      </div>
+    </div>
+  </div>
+  <div class="identity">
+    <div class="container">
+      <div class="seal"><img src="images/ramp-logo.png" alt=""></div>
+      <div>
+        <h1 class="name">RAMP — Raising and Accelerating MSME Performance</h1>
+        <p class="sub">Himachal Pradesh chapter · Implemented by IIT Mandi Catalyst with HPCED · A World Bank–assisted initiative</p>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="container">
+      <ul>
+        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#">The Program</a></li>
+        <li><a href="#">Institutes</a></li>
+        <li><a href="#">Members</a></li>
+        <li><a href="#">News</a></li>
+        <li><a href="#">Dashboard</a></li>
+        <li><a href="#" class="cta">Submit Idea</a></li>
+      </ul>
+    </div>
+  </nav>
+</section>
+
+<section id="sec-hero" class="hero">
+  <div class="container">
+    <div>
+      <span class="eyebrow">A World Bank–assisted initiative · Himachal Pradesh</span>
+      <h1>From <em>trade</em> to <em>venture</em> — building rural MSMEs across Himachal.</h1>
+      <p class="lead">
+        RAMP turns technical and vocational students from <em>job seekers into job creators</em>.
+        It trains students, faculty and Self-Help Groups across 49+ ITIs, polytechnics, colleges
+        and schools — from Mandi to the high-altitude valleys of Lahaul &amp; Spiti.
+      </p>
+      <div class="actions">
+        <a class="btn" href="#">Submit your idea</a>
+        <a class="btn ghost" href="#">Find your nearest centre</a>
+        <a class="btn small" href="#">Small action</a>
+      </div>
+    </div>
+    <div class="carousel">
+      <div class="slides">
+        <div class="slide active" style="background-image:url('images/event-photo-1.jpg')"></div>
+      </div>
+      <div class="caption">Sensitization workshops &amp; exposure visits at IIT Mandi Catalyst</div>
+      <div class="dots">
+        <button class="dot active"></button><button class="dot"></button><button class="dot"></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="sec-stats" class="stats">
+  <div class="container">
+    <div class="stat"><div class="num">49+</div><div class="lbl">Institutes</div></div>
+    <div class="stat"><div class="num">9</div><div class="lbl">Districts covered</div></div>
+    <div class="stat"><div class="num">1,200</div><div class="lbl">Participants engaged</div></div>
+    <div class="stat"><div class="num">4</div><div class="lbl">Implementing partners</div></div>
+  </div>
+</section>
+
+<section id="sec-cards">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">How RAMP works</span>
+      <h2>An execution-first programme — sensitization to venture creation.</h2>
+      <p>Phase I sensitized 1,000+ students and 30+ faculty across Mandi, Kullu and Lahaul &amp; Spiti.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card pillar">
+        <h4>Sensitization</h4>
+        <h3>Workshops at your doorstep</h3>
+        <p>We come to your ITI, college or village to introduce the startup ecosystem.</p>
+      </div>
+      <div class="card pillar clay">
+        <h4>EDP Training</h4>
+        <h3>Practical skills that sell</h3>
+        <p>Digital marketing, financial literacy, and the Business Model Canvas.</p>
+      </div>
+      <div class="card pillar gold">
+        <h4>Bootcamp</h4>
+        <h3>From prototype to plan</h3>
+        <p>Shortlisted teams visit IIT Mandi's Drone, Robotics and Design Practicum labs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="sec-districts" class="alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Where we work</span>
+      <h2>49+ centres across 9 districts of Himachal Pradesh.</h2>
+    </div>
+    <div class="grid-3">
+      <div class="card pillar"><h4>Mandi</h4><h3>14 centres</h3><p style="color:var(--ink-soft);">412 participants</p></div>
+      <div class="card pillar clay"><h4>Kullu</h4><h3>8 centres</h3><p style="color:var(--ink-soft);">234 participants</p></div>
+      <div class="card pillar gold"><h4>Lahaul &amp; Spiti</h4><h3>5 centres</h3><p style="color:var(--ink-soft);">128 participants</p></div>
+      <div class="card pillar leaf"><h4>Shimla</h4><h3>7 centres</h3><p style="color:var(--ink-soft);">198 participants</p></div>
+      <div class="card pillar maroon"><h4>Solan</h4><h3>6 centres</h3><p style="color:var(--ink-soft);">176 participants</p></div>
+      <div class="card pillar"><h4>Bilaspur</h4><h3>4 centres</h3><p style="color:var(--ink-soft);">112 participants</p></div>
+    </div>
+    <div class="district-block" style="margin-top:32px;">
+      <div class="district-head">
+        <h2>Mandi district</h2>
+        <span class="count">14 institutes</span>
+      </div>
+      <ul class="institute-list">
+        <li>
+          <div>
+            <div class="name"><a href="#">ITI Mandi</a></div>
+            <div class="sub">Government Industrial Training Institute · Mandi</div>
+          </div>
+          <span class="tag">Cohort II</span>
+        </li>
+        <li>
+          <div>
+            <div class="name"><a href="#">Polytechnic Sundernagar</a></div>
+            <div class="sub">Government Polytechnic · Sundernagar</div>
+          </div>
+          <span class="tag cohort-1">Cohort I</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="sec-table">
+  <div class="container">
+    <div class="crumbs"><a href="#">Home</a> · <a href="#">Institutes</a> · ITI Mandi</div>
+    <div class="inst-header">
+      <h1>ITI Mandi</h1>
+      <div class="where">Mandi district · Cohort II</div>
+    </div>
+    <div class="inst-body">
+      <div class="col-main">
+        <h3>Programme participation</h3>
+        <p>The institute has hosted three RAMP cohorts since 2023, focused on hands-on bootcamps and EDP training for second-year trainees.</p>
+        <table class="data">
+          <thead>
+            <tr><th>Cohort</th><th>Year</th><th class="num">Participants</th><th class="num">Ventures</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Phase I</td><td>2023</td><td class="num">84</td><td class="num">6</td></tr>
+            <tr><td>Phase II</td><td>2024</td><td class="num">112</td><td class="num">9</td></tr>
+            <tr><td>Phase II ext.</td><td>2025</td><td class="num">128</td><td class="num">11</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside>
+        <div class="fact-box">
+          <dl>
+            <dt>Principal</dt><dd>Dr. R. Sharma</dd>
+            <dt>Email</dt><dd class="contact-line">iti-mandi@hp.gov.in</dd>
+            <dt>Phone</dt><dd class="contact-line">+91 1905 222 333</dd>
+            <dt>Established</dt><dd>1962</dd>
+          </dl>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section id="sec-news" class="alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">News &amp; updates</span>
+      <h2>From across the programme.</h2>
+    </div>
+    <div class="news-item">
+      <div class="date">15 March 2026</div>
+      <h3>RAMP Phase II launch at IIT Mandi Catalyst</h3>
+      <p>Phase II officially kicks off with 12 new institutes joining the programme.</p>
+    </div>
+    <div class="news-item">
+      <div class="date">02 February 2026</div>
+      <h3>Lahaul &amp; Spiti bootcamp wraps up</h3>
+      <p>Twenty-eight participants from high-altitude valleys complete the inaugural EDP cohort.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sec-kpi">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Government dashboard</span>
+      <h2>Live indicators.</h2>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Institutes</div><div class="val">49</div><div class="delta">+6 this quarter</div></div>
+      <div class="kpi clay"><div class="lbl">Participants</div><div class="val">1,260</div><div class="delta">+212</div></div>
+      <div class="kpi gold"><div class="lbl">Ventures</div><div class="val">38</div><div class="delta">+9</div></div>
+      <div class="kpi leaf"><div class="lbl">Investment</div><div class="val">₹4.2Cr</div><div class="delta down">-3%</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="sec-form" class="alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Have an idea?</span>
+      <h2>Apply through our simple form.</h2>
+    </div>
+    <div class="form-card">
+      <div class="notice ok">Form submissions are routed to your district representative.</div>
+      <div class="form-row">
+        <label>Full name <span class="req">*</span></label>
+        <input type="text" placeholder="Your name">
+      </div>
+      <div class="form-row">
+        <label>District</label>
+        <select><option>Mandi</option><option>Kullu</option><option>Lahaul &amp; Spiti</option></select>
+      </div>
+      <div class="form-row">
+        <label>Your idea</label>
+        <textarea placeholder="Tell us what you want to build…"></textarea>
+        <div class="help">Two or three sentences is enough — your local centre will follow up.</div>
+      </div>
+      <div class="captcha-box">
+        <span>What is</span>
+        <span class="captcha-q">7 + 4 = ?</span>
+        <input type="text" placeholder="?">
+        <button class="btn small">Verify</button>
+      </div>
+      <div style="margin-top:18px;">
+        <a class="btn" href="#">Submit application</a>
+        <a class="btn ghost" href="#">Save draft</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="sec-footer">
+  <div class="container">
+    <div>
+      <h4>RAMP Himachal Pradesh</h4>
+      <p style="color:rgba(255,255,255,0.8); margin-top:4px;">
+        A World Bank–assisted initiative of the Ministry of MSME, Government of India,
+        implemented in Himachal Pradesh by the Department of Industries with
+        IIT Mandi Catalyst as Knowledge Partner.
+      </p>
+    </div>
+    <div>
+      <h4>Sections</h4>
+      <ul>
+        <li><a href="#">The Program</a></li>
+        <li><a href="#">Institutes</a></li>
+        <li><a href="#">Members</a></li>
+        <li><a href="#">News</a></li>
+        <li><a href="#">Government Dashboard</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li>IIT Mandi Catalyst</li>
+        <li>Kamand Campus, Mandi 175005</li>
+        <li>catalyst@iitmandi.ac.in</li>
+        <li>+91 1905 267028</li>
+      </ul>
+    </div>
+  </div>
+  <div class="container">
+    <div class="copy">© 2026 Department of Industries, Government of Himachal Pradesh · All rights reserved</div>
+  </div>
+</footer>
+`;
+
+const VARS = [
+  ['--bg', 'Page background'],
+  ['--paper', 'Card / panel'],
+  ['--ink', 'Main text'],
+  ['--ink-soft', 'Secondary text'],
+  ['--line', 'Borders / dividers'],
+  ['--teal', 'Identity bar'],
+  ['--teal-dark', 'Nav / links'],
+  ['--clay', 'Hover / accent'],
+  ['--clay-soft', 'Soft accent bg'],
+  ['--gold', 'Gold underline'],
+  ['--leaf', 'Leaf green'],
+  ['--maroon', 'Maroon accent'],
+  ['--focus', 'Focus outline'],
+];
+
+const FONT_PRESETS = [
+  { label: "Georgia (serif)",         stack: "Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif" },
+  { label: "Iowan Old Style (serif)", stack: "'Iowan Old Style', Georgia, 'Times New Roman', serif" },
+  { label: "System sans",             stack: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
+  { label: "Helvetica",               stack: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  { label: "Times",                   stack: "'Times New Roman', Times, serif" },
+  { label: "Verdana",                 stack: "Verdana, Geneva, sans-serif" },
+  { label: "Courier (mono)",          stack: "'Courier New', Courier, monospace" },
+  { label: "Trebuchet",               stack: "'Trebuchet MS', sans-serif" },
+];
+
+// Sections that can be styled independently.
+// "fallback" is appended after a custom font so we still degrade gracefully.
+const SLOTS = [
+  { id: 'body',     label: 'Body text',          selector: 'body',                                       fallback: 'serif' },
+  { id: 'h1',       label: 'H1 — Page title',    selector: 'h1, .hero h1, .inst-header h1, .identity h1, .identity .name', fallback: 'serif' },
+  { id: 'h2',       label: 'H2 — Section head',  selector: 'h2',                                         fallback: 'serif' },
+  { id: 'h3',       label: 'H3 — Sub-heading',   selector: 'h3',                                         fallback: 'serif' },
+  { id: 'h4',       label: 'H4 — Eyebrow / Card label', selector: 'h4, .eyebrow, .kicker',               fallback: 'sans-serif' },
+  { id: 'lead',     label: 'Lead paragraph',     selector: '.lead, .identity .sub',                      fallback: 'serif' },
+  { id: 'nav',      label: 'Navigation links',   selector: '.nav a, .nav',                               fallback: 'sans-serif' },
+  { id: 'buttons',  label: 'Buttons',            selector: '.btn, .btn.ghost, .btn.cta, .nav a.cta',     fallback: 'sans-serif' },
+  { id: 'stats',    label: 'Stats numbers',      selector: '.stat .num',                                 fallback: 'serif' },
+  { id: 'tags',     label: 'Tags & pills',       selector: '.tag, .pill, .crumbs',                       fallback: 'sans-serif' },
+  { id: 'footer',   label: 'Footer',             selector: 'footer, footer h4, footer a',                fallback: 'serif' },
+  { id: 'emblem',   label: 'Top emblem strip',   selector: '.emblem-strip, .emblem-strip .gov-line',     fallback: 'sans-serif' },
+];
+const MARK_START = '/* === theme-editor:fonts:start === */';
+const MARK_END   = '/* === theme-editor:fonts:end === */';
+
+// ============================================================================
+// FILE SYSTEM ACCESS — directory-based, persisted via IndexedDB so the user
+// only needs to grant permission once per browser profile. Subsequent sessions
+// re-acquire permission with a one-click prompt.
+// ============================================================================
+let dirHandle = null;         // FileSystemDirectoryHandle for the project root
+let cssFileHandle = null;     // shortcut to css/styles.css
+let originalCss = null;       // current contents of styles.css
+
+// Tiny IndexedDB wrapper just for storing the directory handle
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('ramp-theme-editor', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('handles');
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readonly');
+    const req = tx.objectStore('handles').get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function idbSet(key, val) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbDel(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').delete(key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+async function ensurePermission(handle, mode = 'readwrite') {
+  if (!handle.queryPermission) return true;
+  if (await handle.queryPermission({ mode }) === 'granted') return true;
+  return (await handle.requestPermission({ mode })) === 'granted';
+}
+
+async function resolveCssHandle() {
+  if (!dirHandle) return null;
+  const cssDir = await dirHandle.getDirectoryHandle('css');
+  cssFileHandle = await cssDir.getFileHandle('styles.css');
+  return cssFileHandle;
+}
+
+async function connectDirectory(handle, { silent = false } = {}) {
+  dirHandle = handle;
+  if (!(await ensurePermission(handle))) {
+    if (!silent) {
+      document.getElementById('fileStatus').textContent = 'Permission denied. Click "Connect project folder…" again to retry.';
+      document.getElementById('fileStatus').className = 'status err';
+    }
+    dirHandle = null;
+    return false;
+  }
+  try {
+    await resolveCssHandle();
+    const f = await cssFileHandle.getFile();
+    originalCss = await f.text();
+    loadFromCss(originalCss);
+    document.getElementById('fileStatus').textContent = `✓ Connected to "${handle.name}" — editing css/styles.css directly.`;
+    document.getElementById('fileStatus').className = 'status ok';
+    await idbSet('dirHandle', handle);
+    await renderHistory();
+    hideWelcome();
+    return true;
+  } catch (e) {
+    document.getElementById('fileStatus').textContent = 'Could not find css/styles.css in this folder. Picked the wrong folder?';
+    document.getElementById('fileStatus').className = 'status err';
+    dirHandle = null;
+    return false;
+  }
+}
+
+function showWelcome() { document.getElementById('welcomeOverlay').style.display = 'flex'; }
+function hideWelcome() { document.getElementById('welcomeOverlay').style.display = 'none'; }
+
+// ============================================================================
+// CHANGE LOG — stored in <project>/log/. Each Apply writes a full snapshot of
+// the previous styles.css plus an entry in log/index.json.
+// ============================================================================
+async function getLogDir() {
+  if (!dirHandle) return null;
+  return await dirHandle.getDirectoryHandle('log', { create: true });
+}
+async function readLogIndex() {
+  const log = await getLogDir(); if (!log) return [];
+  try {
+    const fh = await log.getFileHandle('index.json');
+    const f = await fh.getFile();
+    return JSON.parse(await f.text());
+  } catch {
+    return [];
+  }
+}
+async function writeLogIndex(entries) {
+  const log = await getLogDir(); if (!log) return;
+  const fh = await log.getFileHandle('index.json', { create: true });
+  const w = await fh.createWritable();
+  await w.write(JSON.stringify(entries, null, 2));
+  await w.close();
+}
+function nowStamp() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+async function addLogEntry(previousCss, summary) {
+  const log = await getLogDir(); if (!log) return null;
+  const stamp = nowStamp();
+  const filename = `styles-${stamp}.css`;
+  const fh = await log.getFileHandle(filename, { create: true });
+  const w = await fh.createWritable();
+  await w.write(previousCss);
+  await w.close();
+  const entries = await readLogIndex();
+  const entry = { id: stamp, timestamp: new Date().toISOString(), filename, summary };
+  entries.unshift(entry); // newest first
+  await writeLogIndex(entries);
+  return entry;
+}
+async function readLogEntryFile(filename) {
+  const log = await getLogDir(); if (!log) return null;
+  const fh = await log.getFileHandle(filename);
+  const f = await fh.getFile();
+  return await f.text();
+}
+async function clearAllLogs() {
+  const log = await getLogDir(); if (!log) return;
+  // Remove every file in the log directory
+  // (Some Chrome versions don't expose entries(); use the async iterator.)
+  for await (const [name] of log.entries()) {
+    await log.removeEntry(name);
+  }
+}
+function describeChanges() {
+  // Build a short human-readable summary of which inputs were modified vs the
+  // last-loaded CSS. We just list slot picks + count of non-default colors.
+  const lib = currentLibrary();
+  const slotPicks = SLOTS.filter(s => {
+    const sel = document.querySelector(`select[data-slot="${s.id}"]`);
+    return sel && sel.value;
+  }).map(s => s.label);
+  const parts = [];
+  if (slotPicks.length) parts.push(`fonts: ${slotPicks.join(', ')}`);
+  if (lib.families.length) parts.push(`${lib.families.length} font(s) loaded`);
+  parts.push('colors updated');
+  return parts.join(' · ');
+}
+async function renderHistory() {
+  const wrap = document.getElementById('historyList');
+  if (!dirHandle) { wrap.textContent = 'Connect the folder first.'; return; }
+  const entries = await readLogIndex();
+  if (!entries.length) { wrap.textContent = 'No log entries yet.'; return; }
+  wrap.innerHTML = '';
+  entries.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    const ts = new Date(e.timestamp);
+    row.innerHTML = `
+      <span class="ts">${ts.toLocaleString()}</span>
+      <span class="desc">${e.summary || ''}</span>
+      <button data-revert="${e.filename}">Revert</button>
+    `;
+    row.querySelector('button').addEventListener('click', () => revertTo(e));
+    wrap.appendChild(row);
+  });
+}
+async function revertTo(entry) {
+  if (!cssFileHandle) return;
+  const status = document.getElementById('applyStatus');
+  try {
+    const target = await readLogEntryFile(entry.filename);
+    if (target == null) throw new Error('Could not read log file ' + entry.filename);
+    // Snapshot the CURRENT file before overwriting (so the revert itself is undo-able)
+    const cur = await (await cssFileHandle.getFile()).text();
+    await addLogEntry(cur, `before revert to ${new Date(entry.timestamp).toLocaleString()}`);
+    // Write the historical content back to styles.css
+    const w = await cssFileHandle.createWritable();
+    await w.write(target);
+    await w.close();
+    originalCss = target;
+    loadFromCss(target);
+    await renderHistory();
+    status.textContent = `✓ Reverted styles.css to ${new Date(entry.timestamp).toLocaleString()}.`;
+    status.className = 'status ok';
+  } catch (e) {
+    status.textContent = 'Revert failed: ' + e.message;
+    status.className = 'status err';
+  }
+}
+
+// Build color rows
+const colorRows = document.getElementById('colorRows');
+VARS.forEach(([name, label]) => {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <label title="${name}">${label}<br><span style="color:#9ca3af;font-size:11px;">${name}</span></label>
+    <input type="color" data-var="${name}" data-role="color">
+    <input type="text" data-var="${name}" data-role="hex" maxlength="7">
+  `;
+  colorRows.appendChild(row);
+});
+
+// Build per-section font slot rows
+const slotRows = document.getElementById('slotRows');
+SLOTS.forEach(s => {
+  const row = document.createElement('div');
+  row.style.marginBottom = '10px';
+  row.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <label style="font-size:13px;font-weight:600;">${s.label}</label>
+      <span style="font-size:10px;color:#9ca3af;font-family:ui-monospace,Menlo,monospace;">${s.selector.split(',')[0]}</span>
+    </div>
+    <select data-slot="${s.id}"></select>
+  `;
+  slotRows.appendChild(row);
+});
+
+function rebuildSlotOptions() {
+  const libraryFamilies = currentLibrary().families;
+  document.querySelectorAll('select[data-slot]').forEach(sel => {
+    const prev = sel.value;
+    sel.innerHTML = '';
+    const def = document.createElement('option'); def.value = ''; def.textContent = '(default — leave as-is)'; sel.appendChild(def);
+    if (libraryFamilies.length) {
+      const og = document.createElement('optgroup'); og.label = 'From your library';
+      libraryFamilies.forEach(fam => {
+        const o = document.createElement('option'); o.value = `lib:${fam}`; o.textContent = fam; og.appendChild(o);
+      });
+      sel.appendChild(og);
+    }
+    const og2 = document.createElement('optgroup'); og2.label = 'Presets';
+    FONT_PRESETS.forEach(p => {
+      const o = document.createElement('option'); o.value = `preset:${p.stack}`; o.textContent = p.label; og2.appendChild(o);
+    });
+    sel.appendChild(og2);
+    if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  });
+}
+rebuildSlotOptions();
+
+// Mount the preview shadow DOM. Self-contained: no iframe, no fetch — works on
+// double-click via file://.
+const previewHost = document.getElementById('previewHost');
+const previewShadow = previewHost.attachShadow({ mode: 'open' });
+// Scope variables on :host (the shadow boundary) so they cascade into the
+// shadow content. Replace the original :root with :host on mount.
+const SCOPED_CSS = EMBEDDED_CSS.replace(/:root\b/g, ':host');
+previewShadow.innerHTML = `
+  <style data-base>${SCOPED_CSS}</style>
+  <style data-theme-editor="slot-style"></style>
+  <div data-preview-root>${EMBEDDED_HTML}</div>
+`;
+
+function previewDoc() {
+  // Kept for compatibility — returns the shadow root, which behaves enough like
+  // a document for the operations we perform (querySelector, createElement, etc).
+  return previewShadow;
+}
+// setColor updates the panel inputs AND pushes the variable live into the
+// shadow-DOM preview. Cheap — just an inline style on the host element.
+function setColor(name, hex) {
+  const cInput = document.querySelector(`input[data-var="${name}"][data-role="color"]`);
+  const tInput = document.querySelector(`input[data-var="${name}"][data-role="hex"]`);
+  if (cInput) cInput.value = hex;
+  if (tInput) tInput.value = hex;
+  if (previewHost) previewHost.style.setProperty(name, hex);
+}
+
+// Snapshot of the values that were last pushed to the preview.
+// Used so that navigating between pages in the iframe keeps the same look.
+let appliedPreviewState = null;
+
+function snapshotInputs() {
+  const colors = {};
+  VARS.forEach(([name]) => {
+    const el = document.querySelector(`input[data-var="${name}"][data-role="color"]`);
+    if (el) colors[name] = el.value;
+  });
+  const slots = {};
+  SLOTS.forEach(s => {
+    const sel = document.querySelector(`select[data-slot="${s.id}"]`);
+    slots[s.id] = sel ? sel.value : '';
+  });
+  return { colors, lib: currentLibrary(), slots };
+}
+
+function applySnapshotToPreview(state) {
+  if (!state || !previewShadow) return;
+  // CSS variables — set on the host element. They cascade through the shadow
+  // boundary into the embedded preview content.
+  Object.entries(state.colors).forEach(([name, hex]) => {
+    previewHost.style.setProperty(name, hex);
+  });
+  // Font <link> tags — added inside the shadow root so the fonts apply to
+  // the scoped content (and to the editor's own chips via syncEditorFontLinks).
+  previewShadow.querySelectorAll('link[data-theme-editor="font-link"]').forEach(l => l.remove());
+  state.lib.urls.forEach(href => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = href;
+    link.setAttribute('data-theme-editor', 'font-link');
+    previewShadow.appendChild(link);
+  });
+  // Per-slot font-family overrides
+  const css = [];
+  SLOTS.forEach(s => {
+    const val = state.slots[s.id]; if (!val) return;
+    const choice = resolveSlotChoice(val); if (!choice) return;
+    const stack = choice.isLib ? `'${choice.family}', ${s.fallback}` : choice.stack;
+    css.push(`${s.selector} { font-family: ${stack} !important; }`);
+  });
+  const styleEl = previewShadow.querySelector('style[data-theme-editor="slot-style"]');
+  if (styleEl) styleEl.textContent = css.join('\n');
+}
+
+// Push the current input state into the preview. Called from every change.
+// Light enough to run on every keystroke / colour-picker drag.
+function pushLive() {
+  appliedPreviewState = snapshotInputs();
+  applySnapshotToPreview(appliedPreviewState);
+}
+
+// Debounce noisy events (typing in the font-library textarea) so we don't
+// re-create font <link>s on every keystroke.
+let pushLiveTimer = null;
+function pushLiveDebounced(ms = 150) {
+  clearTimeout(pushLiveTimer);
+  pushLiveTimer = setTimeout(pushLive, ms);
+}
+
+document.querySelectorAll('input[data-role="color"]').forEach(inp => {
+  inp.addEventListener('input', () => setColor(inp.dataset.var, inp.value));
+});
+document.querySelectorAll('input[data-role="hex"]').forEach(inp => {
+  inp.addEventListener('change', () => {
+    const v = inp.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) setColor(inp.dataset.var, v);
+  });
+});
+
+// Parse the font library textarea. Accepts:
+//   - Full <link> snippet from Google Fonts
+//   - Bare URL(s)
+//   - Bare family names (one per line)
+// Returns { urls, families }.
+function currentLibrary() {
+  const text = document.getElementById('fontEmbed').value;
+  const families = [];
+  const urls = [];
+  if (!text || !text.trim()) return { urls, families };
+  const urlMatches = [...text.matchAll(/https?:\/\/[^\s"'<>]+/g)].map(m => m[0]);
+  urlMatches.filter(u => /fonts\.googleapis\.com\/css/.test(u)).forEach(u => {
+    if (!urls.includes(u)) urls.push(u);
+    [...u.matchAll(/[?&]family=([^&]+)/g)].forEach(m => {
+      const fam = decodeURIComponent(m[1]).replace(/\+/g,' ').split(':')[0].trim();
+      if (fam && !families.includes(fam)) families.push(fam);
+    });
+  });
+  // Lines that aren't URLs and aren't HTML — treat as bare family names
+  const looksLikeHtmlOrUrl = (s) => /https?:\/\//.test(s) || /[<>]/.test(s);
+  text.split('\n').forEach(line => {
+    const t = line.trim().replace(/[;,]$/, '');
+    if (!t || looksLikeHtmlOrUrl(t)) return;
+    if (families.includes(t)) return;
+    families.push(t);
+    urls.push(`https://fonts.googleapis.com/css2?family=${encodeURIComponent(t).replace(/%20/g,'+')}:wght@400;700&display=swap`);
+  });
+  return { urls, families };
+}
+
+function resolveSlotChoice(val) {
+  if (!val) return null;
+  if (val.startsWith('lib:')) {
+    const fam = val.slice(4);
+    const slot = SLOTS.find(s => s.id === '__unused__'); // placeholder
+    return { family: fam, isLib: true };
+  }
+  if (val.startsWith('preset:')) return { stack: val.slice(7), isLib: false };
+  return null;
+}
+
+// Chips in the panel show each library font rendered in its own face — we load the
+// font once into the editor document too so chips don't look generic.
+let editorGfLinks = [];
+function syncEditorFontLinks(urls) {
+  editorGfLinks.forEach(l => l.remove());
+  editorGfLinks = [];
+  urls.forEach(href => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = href;
+    document.head.appendChild(link);
+    editorGfLinks.push(link);
+  });
+}
+
+function renderLibraryChips(families) {
+  const wrap = document.getElementById('libraryChips');
+  wrap.innerHTML = '';
+  families.forEach(fam => {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.innerHTML = `<span style="font-family:'${fam.replace(/'/g,"\\'")}', sans-serif;">${fam}</span><span class="x" title="Remove from library">×</span>`;
+    c.querySelector('.x').addEventListener('click', () => removeFamilyFromLibrary(fam));
+    wrap.appendChild(c);
+  });
+}
+
+function removeFamilyFromLibrary(fam) {
+  const ta = document.getElementById('fontEmbed');
+  const lines = ta.value.split('\n');
+  const kept = lines.filter(line => {
+    const t = line.trim();
+    if (!t) return false;
+    // Drop URLs that reference this family
+    const urls = [...t.matchAll(/https?:\/\/[^\s"'<>]+/g)].map(m => m[0]);
+    for (const u of urls) {
+      if (/fonts\.googleapis\.com\/css/.test(u)) {
+        const matches = [...u.matchAll(/[?&]family=([^&]+)/g)].map(m => decodeURIComponent(m[1]).replace(/\+/g,' ').split(':')[0].trim());
+        if (matches.includes(fam)) return false;
+      }
+    }
+    // Drop bare-name line matching this family
+    if (t.replace(/[;,]$/,'') === fam) return false;
+    return true;
+  });
+  ta.value = kept.join('\n');
+  rebuildSlotOptions();
+  refreshLibraryUI();
+}
+
+// Refresh chips / library status / slot dropdowns. Cheap — runs on every
+// textarea keystroke.
+function refreshLibraryUI() {
+  const lib = currentLibrary();
+  syncEditorFontLinks(lib.urls);   // load fonts into the editor doc so chips preview correctly
+  document.getElementById('libraryStatus').textContent =
+    lib.families.length
+      ? `${lib.families.length} font${lib.families.length === 1 ? '' : 's'} in library — select per section below.`
+      : 'Library is empty — only preset fonts are available.';
+  document.getElementById('libraryStatus').className = 'status' + (lib.families.length ? ' ok' : '');
+  renderLibraryChips(lib.families);
+}
+
+// Live wiring — every change feeds straight into the preview.
+document.getElementById('fontEmbed').addEventListener('input', () => {
+  rebuildSlotOptions();
+  refreshLibraryUI();
+  pushLiveDebounced();
+});
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.matches('select[data-slot]')) pushLive();
+});
+// Color picker is already wired through setColor (which writes the variable
+// to previewHost directly), so we don't need a separate listener here.
+
+// Connect the project folder (directory picker). Stored in IndexedDB so the
+// user only does this once per browser profile.
+document.getElementById('pickBtn').addEventListener('click', async () => {
+  if (!window.showDirectoryPicker) {
+    document.getElementById('fileStatus').textContent = 'Your browser does not support directory access. Use Chrome or Edge.';
+    document.getElementById('fileStatus').className = 'status err';
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    await connectDirectory(handle);
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      document.getElementById('fileStatus').textContent = 'Error: ' + e.message;
+      document.getElementById('fileStatus').className = 'status err';
+    }
+  }
+});
+
+document.getElementById('forgetBtn').addEventListener('click', async () => {
+  await idbDel('dirHandle');
+  dirHandle = null; cssFileHandle = null;
+  document.getElementById('fileStatus').textContent = 'Forgotten. Click "Connect project folder…" to set up again.';
+  document.getElementById('fileStatus').className = 'status';
+  document.getElementById('historyList').textContent = 'Connect the folder first.';
+  showWelcome();
+});
+
+// Welcome overlay button — opens the directory picker as part of the click
+// gesture (this is the only way browsers will allow the picker to open).
+document.getElementById('welcomeConnect').addEventListener('click', async () => {
+  const err = document.getElementById('welcomeErr');
+  err.textContent = '';
+  if (!window.showDirectoryPicker) {
+    err.textContent = 'Your browser does not support directory access. Use Chrome or Edge.';
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const ok = await connectDirectory(handle);
+    if (!ok) err.textContent = 'Could not find css/styles.css in that folder — try again.';
+  } catch (e) {
+    if (e.name !== 'AbortError') err.textContent = 'Error: ' + e.message;
+  }
+});
+
+document.getElementById('clearLogBtn').addEventListener('click', async () => {
+  if (!dirHandle) return;
+  if (!confirm('Delete every entry in the log/ folder? This cannot be undone.')) return;
+  try {
+    await clearAllLogs();
+    await renderHistory();
+    const s = document.getElementById('applyStatus');
+    s.textContent = '✓ Log cleared.'; s.className = 'status ok';
+  } catch (e) {
+    const s = document.getElementById('applyStatus');
+    s.textContent = 'Clear failed: ' + e.message; s.className = 'status err';
+  }
+});
+
+function loadFromCss(css) {
+  // Parse :root variables
+  const rootMatch = css.match(/:root\s*\{([\s\S]*?)\}/);
+  if (rootMatch) {
+    const block = rootMatch[1];
+    VARS.forEach(([name]) => {
+      const re = new RegExp(`${name.replace(/[-]/g,'\\-')}\\s*:\\s*([^;]+);`);
+      const m = block.match(re);
+      if (m) {
+        const val = m[1].trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(val)) setColor(name, val);
+      }
+    });
+  }
+  // Pull the managed block (if any) — it owns imports + per-slot rules
+  const blockRe = new RegExp(MARK_START.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '([\\s\\S]*?)' + MARK_END.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const blockMatch = css.match(blockRe);
+  const block = blockMatch ? blockMatch[1] : '';
+
+  // Imports inside the managed block (or anywhere if no block yet)
+  const importSrc = block || css;
+  const imports = [...importSrc.matchAll(/@import url\(['"](https:\/\/fonts\.googleapis\.com\/css[^'"]+)['"]\);?/g)].map(m => m[1]);
+  document.getElementById('fontEmbed').value = imports.length
+    ? imports.map(u => `<link href="${u}" rel="stylesheet">`).join('\n')
+    : '';
+
+  rebuildSlotOptions();
+
+  // Parse per-slot rules from the managed block, e.g.   body { font-family: 'Inter', serif; }
+  document.querySelectorAll('select[data-slot]').forEach(sel => { sel.value = ''; });
+  if (block) {
+    SLOTS.forEach(s => {
+      const selectorPattern = s.selector.split(',')[0].trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const ruleRe = new RegExp(`(?:^|\\n)\\s*${selectorPattern}[^{]*\\{[^}]*font-family:\\s*([^;}]+)`);
+      const m = block.match(ruleRe);
+      if (m) {
+        const stack = m[1].trim();
+        const firstFamily = stack.split(',')[0].trim().replace(/^['"]|['"]$/g,'');
+        const sel = document.querySelector(`select[data-slot="${s.id}"]`);
+        // Try to match a library family first, else a preset, else inject a "(saved)" option
+        const libOpt = [...sel.options].find(o => o.value === `lib:${firstFamily}`);
+        if (libOpt) { sel.value = libOpt.value; return; }
+        const presetOpt = [...sel.options].find(o => o.value === `preset:${stack}`);
+        if (presetOpt) { sel.value = presetOpt.value; return; }
+        const o = document.createElement('option');
+        o.value = `preset:${stack}`; o.textContent = '(saved) ' + firstFamily;
+        sel.prepend(o); sel.value = o.value;
+      }
+    });
+  }
+  refreshLibraryUI();
+  // Sync the freshly-loaded state into the preview so it matches the file
+  // (rather than the embedded baseline).
+  pushLive();
+}
+
+function buildUpdatedCss(css) {
+  let out = css;
+
+  // Update :root variables
+  out = out.replace(/:root\s*\{([\s\S]*?)\}/, (full, block) => {
+    let updated = block;
+    VARS.forEach(([name]) => {
+      const hex = document.querySelector(`input[data-var="${name}"][data-role="color"]`).value;
+      const re = new RegExp(`(${name.replace(/[-]/g,'\\-')}\\s*:\\s*)([^;]+)(;)`);
+      if (re.test(updated)) {
+        updated = updated.replace(re, `$1${hex}$3`);
+      } else {
+        updated = updated.trimEnd() + `\n  ${name}: ${hex};\n`;
+      }
+    });
+    return `:root {${updated}}`;
+  });
+
+  // Strip any prior editor-managed block AND any stray top-level fonts.googleapis imports
+  const blockRe = new RegExp('\\n?\\s*' + MARK_START.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[\\s\\S]*?' + MARK_END.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\s*\\n?', 'g');
+  out = out.replace(blockRe, '\n');
+  const stripImportRe = /@import url\(['"]https:\/\/fonts\.googleapis\.com\/css[^'"]+['"]\);\s*\n?/g;
+  out = out.replace(stripImportRe, '');
+
+  // Build the new managed block from current slot selections + library
+  const lib = currentLibrary();
+  const lines = [MARK_START, '/* Generated by theme-editor.html — edit via the editor or remove this block to revert. */'];
+  lib.urls.forEach(u => lines.push(`@import url('${u}');`));
+
+  SLOTS.forEach(s => {
+    const sel = document.querySelector(`select[data-slot="${s.id}"]`);
+    if (!sel || !sel.value) return;
+    const choice = resolveSlotChoice(sel.value);
+    if (!choice) return;
+    const stack = choice.isLib ? `'${choice.family}', ${s.fallback}` : choice.stack;
+    lines.push(`${s.selector} { font-family: ${stack}; }`);
+  });
+  lines.push(MARK_END);
+
+  // Only append if there's something to manage
+  const hasContent = lib.urls.length || SLOTS.some(s => {
+    const sel = document.querySelector(`select[data-slot="${s.id}"]`);
+    return sel && sel.value;
+  });
+  if (hasContent) {
+    out = out.replace(/\s*$/, '') + '\n\n' + lines.join('\n') + '\n';
+  }
+  return out;
+}
+
+document.getElementById('applyBtn').addEventListener('click', async () => {
+  const status = document.getElementById('applyStatus');
+  try {
+    if (!cssFileHandle) {
+      // Fallback path: no directory connected. Offer a download.
+      const updated = buildUpdatedCss(originalCss || EMBEDDED_CSS);
+      const blob = new Blob([updated], { type: 'text/css' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'styles.css';
+      a.click();
+      status.textContent = 'Downloaded styles.css — connect the folder to write in place and keep a log.';
+      status.className = 'status ok';
+      return;
+    }
+
+    // Re-read the file so we log the actual on-disk state (in case someone
+    // edited styles.css outside the editor since we opened it).
+    const current = await (await cssFileHandle.getFile()).text();
+    const updated = buildUpdatedCss(current);
+    if (updated === current) {
+      status.textContent = 'No changes to apply — output is identical to the current file.';
+      status.className = 'status';
+      return;
+    }
+    // 1. Snapshot the previous file into log/
+    const entry = await addLogEntry(current, describeChanges());
+    // 2. Write the new content
+    const w = await cssFileHandle.createWritable();
+    await w.write(updated);
+    await w.close();
+    originalCss = updated;
+    await renderHistory();
+    status.textContent = `✓ Written to css/styles.css. Log entry: ${entry.filename}. Reload the site to see changes.`;
+    status.className = 'status ok';
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+    status.className = 'status err';
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  // Re-read styles.css from disk if connected, else fall back to original/embedded.
+  if (cssFileHandle) {
+    try {
+      const txt = await (await cssFileHandle.getFile()).text();
+      originalCss = txt;
+      loadFromCss(txt);
+      return;
+    } catch {}
+  }
+  if (originalCss) loadFromCss(originalCss);
+});
+
+// Section-jump buttons in the preview toolbar
+document.querySelectorAll('.pv-toolbar button[data-jump]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pv-toolbar button[data-jump]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = previewShadow.querySelector('#' + btn.dataset.jump);
+    if (target) {
+      const scroll = document.getElementById('previewScroll');
+      const targetTop = target.getBoundingClientRect().top - previewHost.getBoundingClientRect().top;
+      scroll.scrollTo({ top: targetTop, behavior: 'smooth' });
+    }
+  });
+});
+
+// (The "Update preview" button has been removed — preview updates live.)
+
+// Initial load:
+//   1. Try to restore the previously-granted directory handle from IndexedDB.
+//      The browser will silently re-grant permission if it has the rule
+//      cached, otherwise it shows a one-click prompt on the first interaction.
+//   2. Fall back to fetch('css/styles.css') for users on http://localhost.
+//   3. Last resort: embedded CSS snapshot (functional but read-only).
+(async () => {
+  // Pre-seed inputs from the embedded snapshot so the preview is correct even
+  // before any file is connected.
+  originalCss = EMBEDDED_CSS;
+  loadFromCss(EMBEDDED_CSS);
+
+  // Try to re-attach to the saved directory handle (zero-click path).
+  try {
+    const saved = await idbGet('dirHandle');
+    if (saved) {
+      const state = saved.queryPermission ? await saved.queryPermission({ mode: 'readwrite' }) : 'prompt';
+      if (state === 'granted') {
+        await connectDirectory(saved, { silent: true });
+        return; // welcome stays hidden
+      } else {
+        // Permission expired — show the welcome overlay but pre-populate with
+        // a "Reconnect to {folderName}" button so the user can re-grant in one
+        // click rather than re-navigating the picker.
+        const card = document.querySelector('.welcome .card');
+        card.querySelector('h2').textContent = `Reconnect to "${saved.name}"`;
+        card.querySelector('p').innerHTML = `The browser needs you to re-confirm folder access. One click and you're back in.`;
+        const btn = document.getElementById('welcomeConnect');
+        btn.textContent = `Reconnect to "${saved.name}"`;
+        btn.addEventListener('click', async () => {
+          const ok = await connectDirectory(saved);
+          if (!ok) {
+            // Permission denied — fall through to a fresh pick on next click
+            btn.textContent = 'Pick a folder…';
+            document.getElementById('welcomeErr').textContent = 'Permission was not granted. Click to pick the folder again.';
+          }
+        }, { once: true });
+        showWelcome();
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('[theme-editor] Could not restore directory handle:', e);
+  }
+
+  // No saved handle — try fetch first (works on http:// without a picker)
+  try {
+    const r = await fetch('css/styles.css');
+    if (r.ok) {
+      originalCss = await r.text();
+      loadFromCss(originalCss);
+      document.getElementById('fileStatus').textContent = 'Loaded css/styles.css via fetch — connect the folder to enable saving + change log.';
+      // We still want write access for Apply, so prompt anyway
+      showWelcome();
+      return;
+    }
+  } catch {}
+
+  // First-time double-click: show the welcome overlay so the picker is one
+  // click away (the only user-gesture-friendly way to call showDirectoryPicker).
+  document.getElementById('fileStatus').textContent = 'Click "Connect project folder…" to start editing the real styles.css.';
+  showWelcome();
+})();
+</script>
+</body>
+</html>

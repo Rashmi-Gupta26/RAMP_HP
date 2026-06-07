@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Institutes — RAMP Himachal Pradesh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<section>
+  <div class="container">
+    <span class="kicker" style="color:var(--clay); text-transform:uppercase; letter-spacing:0.14em; font-size:12px; font-family:'Helvetica Neue', Arial, sans-serif;">Network</span>
+    <h1>Institutes &amp; centres</h1>
+    <p class="lead" style="font-size:1.1rem; color:var(--ink-soft); max-width:760px;">
+      Every district of Himachal Pradesh covered by the RAMP programme has approximately six
+      institutes — ITIs, polytechnics, government colleges and senior secondary schools. Click
+      any institute to see contact details and the team representing it.
+    </p>
+
+    <div class="form-row" style="max-width:480px; margin-top:18px;">
+      <label for="filter">Filter</label>
+      <input id="filter" type="search" placeholder="Search by name, district or trade…">
+    </div>
+
+    <div id="districts"></div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  mountChrome('institutes');
+  const { INSTITUTES, DISTRICTS, slug } = window.RAMP_DATA;
+  const root = document.getElementById('districts');
+
+  function render(filter='') {
+    const q = filter.trim().toLowerCase();
+    root.innerHTML = '';
+    DISTRICTS.forEach(d => {
+      const list = INSTITUTES.filter(i => i.district === d &&
+        (!q || (i.name + ' ' + i.district + ' ' + (i.agency||'') + ' ' + (i.about||'')).toLowerCase().includes(q))
+      );
+      if (!list.length) return;
+      const block = document.createElement('div');
+      block.className = 'district-block';
+      block.id = slug(d);
+      block.innerHTML = `
+        <div class="district-head">
+          <h2>${d} District</h2>
+          <div class="count">${list.length} centre${list.length>1?'s':''}</div>
+        </div>
+        <ul class="institute-list">
+          ${list.map(it => `
+            <li>
+              <div>
+                <div class="name"><a href="institute.html?id=${it.id}">${it.name}</a></div>
+                <div class="sub">${it.agency || ''} · ${it.address ? it.address.split(',').slice(-2).join(',').trim() : ''}</div>
+              </div>
+              <div>
+                <span class="tag cohort-${it.cohort}">Cohort ${it.cohort}</span>
+              </div>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+      root.appendChild(block);
+    });
+    if (!root.children.length) {
+      root.innerHTML = `<p style="text-align:center; color:var(--ink-soft); padding:40px 0;">No institutes match "${filter}".</p>`;
+    }
+  }
+  render();
+  document.getElementById('filter').addEventListener('input', e => render(e.target.value));
+
+  // Auto-scroll to a district hash
+  if (location.hash) {
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'start'}), 100);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Members — RAMP Himachal Pradesh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<section>
+  <div class="container">
+    <span class="kicker" style="color:var(--clay); text-transform:uppercase; letter-spacing:0.14em; font-size:12px; font-family:'Helvetica Neue', Arial, sans-serif;">Members</span>
+    <h1>Programme members &amp; contacts</h1>
+    <p class="lead" style="font-size:1.1rem; color:var(--ink-soft); max-width:760px;">
+      The full directory of state-level members and centre representatives is protected by a
+      simple check to prevent automated scraping. Please answer the question below to view the list.
+    </p>
+
+    <div id="gate" class="form-card">
+      <h3 style="margin-top:0;">Quick check</h3>
+      <p class="help" style="margin-top:0;">Solve this simple math question to view the members directory.</p>
+      <div class="captcha-box">
+        <span class="captcha-q" id="cap-q">—</span>
+        <input id="cap-a" type="text" inputmode="numeric" autocomplete="off" aria-label="Captcha answer">
+        <button class="btn" id="cap-go">View members</button>
+      </div>
+      <div id="cap-msg"></div>
+    </div>
+
+    <div id="directory" style="display:none; margin-top:32px;">
+      <h2>State-level leadership</h2>
+      <div class="grid-2" id="m-leadership"></div>
+
+      <h2 style="margin-top:40px;">Centre representatives</h2>
+      <p class="help">Listed by district. Click an institute name for full details.</p>
+      <table class="data" id="m-centres">
+        <thead>
+          <tr>
+            <th>District</th>
+            <th>Institute</th>
+            <th>Representative</th>
+            <th>Phone</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script src="js/captcha.js"></script>
+<script>
+  mountChrome('members');
+  const qEl = document.getElementById('cap-q');
+  const aEl = document.getElementById('cap-a');
+  const msg = document.getElementById('cap-msg');
+  makeCaptcha(qEl, aEl);
+
+  document.getElementById('cap-go').addEventListener('click', () => {
+    if (verifyCaptcha(qEl, aEl)) {
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('directory').style.display = '';
+      renderDirectory();
+    } else {
+      msg.innerHTML = '<div class="notice err">That answer is not correct. Please try again.</div>';
+      makeCaptcha(qEl, aEl);
+    }
+  });
+  aEl.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('cap-go').click(); });
+
+  function renderDirectory() {
+    const { INSTITUTES, MEMBERS } = window.RAMP_DATA;
+    const lead = document.getElementById('m-leadership');
+    lead.innerHTML = MEMBERS.map(m => `
+      <div class="card">
+        <h3 style="margin-bottom:4px;">${m.name}</h3>
+        <div class="meta">${m.role}</div>
+        <p style="margin:8px 0 4px;">${m.org}</p>
+        <p style="margin:0; font-size:14px;">
+          📞 <a href="tel:${m.phone.replace(/\s+/g,'')}">${m.phone}</a><br>
+          ✉ <a href="mailto:${m.email}">${m.email}</a>
+        </p>
+      </div>
+    `).join('');
+
+    const tbody = document.querySelector('#m-centres tbody');
+    tbody.innerHTML = INSTITUTES.map(it => `
+      <tr>
+        <td>${it.district}</td>
+        <td><a href="institute.html?id=${it.id}">${it.name}</a></td>
+        <td>${it.contact?.name || '—'}</td>
+        <td>${it.contact?.phone ? `<a href="tel:${it.contact.phone.replace(/\s+/g,'')}">${it.contact.phone}</a>` : '—'}</td>
+        <td>${it.contact?.email ? `<a href="mailto:${it.contact.email}">${it.contact.email}</a>` : '—'}</td>
+      </tr>
+    `).join('');
+  }
+</script>
+</body>
+</html>

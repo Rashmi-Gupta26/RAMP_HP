@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RAMP Himachal Pradesh — IIT Mandi Catalyst</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The Raising and Accelerating MSME Performance (RAMP) initiative in Himachal Pradesh—implemented by IIT Mandi Catalyst with HPCED.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<section class="hero">
+  <div class="container">
+    <div>
+      <span class="eyebrow">A World Bank–assisted initiative · Himachal Pradesh</span>
+      <h1>RAMP FOR MSME — Innovation, Opportunity, progress </h1>
+      <p class="lead">
+        RAMP turns technical and vocational students from <em>job seekers into job creators</em>.
+        It trains students, faculty and Self-Help Groups across 49+ ITIs, polytechnics, colleges
+        and schools — from Mandi to the high-altitude valleys of Lahaul & Spiti.
+      </p>
+      <div class="actions">
+        <a class="btn" href="submit.html">Submit your idea</a>
+        <a class="btn ghost" href="institutes.html">Find your nearest centre</a>
+      </div>
+    </div>
+    <div class="carousel" id="hero-carousel">
+      <div class="slides">
+        <div class="slide active" style="background-image:url('images/event-photo-1.jpg')"></div>
+        <div class="slide" style="background-image:url('images/event-photo-2.jpg')"></div>
+        <div class="slide" style="background-image:url('images/event-photo-3.jpg')"></div>
+        <div class="slide" style="background-image:url('images/event-photo-4.jpg')"></div>
+      </div>
+      <div class="caption">Sensitization workshops &amp; exposure visits at IIT Mandi Catalyst</div>
+      <div class="dots"></div>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="container">
+    <div class="stat"><div class="num" id="s-inst">—</div><div class="lbl">Institutes</div></div>
+    <div class="stat"><div class="num" id="s-dist">—</div><div class="lbl">Districts covered</div></div>
+    <div class="stat"><div class="num" id="s-part">—</div><div class="lbl">Participants engaged</div></div>
+    <div class="stat"><div class="num">4</div><div class="lbl">Implementing partners</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">How RAMP works</span>
+      <h2>An execution-first programme — sensitization to venture creation.</h2>
+      <p>Phase I sensitized 1,000+ students and 30+ faculty across Mandi, Kullu and Lahaul &amp; Spiti.
+        Phase II shifts toward intensive capacity-building, sector-specific bootcamps and venture creation.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card pillar">
+        <h4>Stage 01</h4>
+        <h3>Awareness</h3>
+        <p>We come to your ITI, college or village to introduce the startup ecosystem
+          and the fundamentals of entrepreneurship.</p>
+      </div>
+      <div class="card pillar clay">
+        <h4>Stage 02</h4>
+        <h3>Bootcamp</h3>
+        <p>Practical training in business, marketing and finance - 3 cohorts running.</p>
+      </div>
+      <div class="card pillar leaf">
+        <h4>Stage 03</h4>
+        <h3>Incubation</h3>
+        <p>Mentorship and lab support to turn ideas into startups - 11 ideas prototyped</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Where we work</span>
+      <h2>49+ centres across 9 districts of Himachal Pradesh.</h2>
+      <p>Each district hosts a network of ITIs, polytechnics, government colleges and senior secondary
+        schools — supported by four implementing agencies, with IIT Mandi Catalyst as Knowledge Partner.</p>
+    </div>
+    <div class="grid-3" id="dist-cards"></div>
+    <div style="text-align:center; margin-top:32px;">
+      <a class="btn ghost" href="institutes.html">See all institutes →</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Have an idea?</span>
+      <h2>Apply through our simple form — your local centre will respond.</h2>
+      <p>Anyone with an idea — a student, a farmer, an SHG, a returning migrant — can apply.
+        We share your application with the representative of your geographic region by email,
+        and we keep a record of every submission.</p>
+    </div>
+    <div style="text-align:center;">
+      <a class="btn" href="submit.html">Submit your idea</a>
+      &nbsp;
+      <a class="btn ghost" href="program.html">Read about the programme</a>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  mountChrome('home');
+  initCarousel(document.getElementById('hero-carousel'));
+
+  // Stats
+  const data = window.RAMP_DATA;
+  document.getElementById('s-inst').textContent = data.INSTITUTES.length + '+';
+  document.getElementById('s-dist').textContent = data.DISTRICTS.length;
+  const total = data.INSTITUTES.reduce((s, i) => s + (i.participants || 0), 0);
+  document.getElementById('s-part').textContent = Math.round(total).toLocaleString('en-IN');
+
+  // District cards
+  const wrap = document.getElementById('dist-cards');
+  const colors = ['', 'clay', 'leaf', 'maroon', 'orange', 'clay', 'leaf', 'leaf'];
+  data.DISTRICTS.forEach((d, i) => {
+    const list = data.INSTITUTES.filter(x => x.district === d);
+    const totalP = list.reduce((s, x) => s + (x.participants || 0), 0);
+    const card = document.createElement('div');
+    card.className = 'card pillar ' + (colors[i] || '');
+    card.innerHTML = `
+      <h4>${d}</h4>
+      <h3>${list.length} centres</h3>
+      <p style="color:var(--ink-soft);">${Math.round(totalP).toLocaleString('en-IN')} participants engaged across cohorts I &amp; II.</p>
+      <p><a href="institutes.html#${data.slug(d)}">View centres →</a></p>
+    `;
+    wrap.appendChild(card);
+  });
+</script>
+</body>
+</html>

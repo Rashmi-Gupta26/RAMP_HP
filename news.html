@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>News &amp; Updates — RAMP Himachal Pradesh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<section>
+  <div class="container" style="max-width:880px;">
+    <span class="kicker" style="color:var(--clay); text-transform:uppercase; letter-spacing:0.14em; font-size:12px; font-family:'Helvetica Neue', Arial, sans-serif;">News</span>
+    <h1>News &amp; updates</h1>
+    <p class="lead" style="font-size:1.1rem; color:var(--ink-soft);">
+      Workshops, bootcamps and milestones from across the RAMP network in Himachal Pradesh.
+    </p>
+    <div id="news-list" style="margin-top:32px;"></div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  mountChrome('news');
+  const list = document.getElementById('news-list');
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+  list.innerHTML = window.RAMP_DATA.NEWS.map(n => `
+    <article class="news-item">
+      <div class="date">${fmt(n.date)}</div>
+      <h3>${n.title}</h3>
+      <p>${n.body}</p>
+    </article>
+  `).join('');
+</script>
+</body>
+</html>
