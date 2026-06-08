@@ -2,31 +2,32 @@
  * Daily reminder job — implements the 21-day review rule from Section 7.
  *
  * For every Sheet row:
- *   - status = "Pending"      → remind once submission is > REVIEW_DEADLINE_DAYS old
- *   - status = "Under review" → remind once response date is > REVIEW_PAUSE_DAYS old
+ *   - Status = "Pending"      → remind once submission is > REVIEW_DEADLINE_DAYS old
+ *   - Status = "Under review" → remind once response date is > REVIEW_PAUSE_DAYS old
  *
  * A row is never reminded more often than REMINDER_COOLDOWN_DAYS.
  */
 
 function sendOverdueReminders() {
   const sh = getSheet_();
-  const last = sh.getLastRow();
-  if (last < 2) return;
+  const headers = ensureMetaColumns_(sh);
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
 
-  const range = sh.getRange(2, 1, last - 1, COLUMNS.length).getValues();
+  const rows = sh.getRange(2, 1, lastRow - 1, headers.length).getValues();
   const now = Date.now();
   let sent = 0, skipped = 0;
 
-  range.forEach((row, i) => {
-    const s = {};
-    COLUMNS.forEach((c, j) => s[c] = row[j]);
+  rows.forEach((row, i) => {
+    const s = rowToSubmission_(headers, row);
     s._row = i + 2;
 
+    if (!s.ID) { skipped++; return; }              // not yet ingested
     if (!needsReminder_(s, now)) { skipped++; return; }
 
-    const partner = resolvePartner(s['Implementation partner']);
+    const partner = resolvePartner(s['Implementation partner'] || s['Institute']);
     if (!partner) {
-      console.warn('No partner mapping for row %s (%s)', s._row, s.ID);
+      console.warn('Row %s (%s): no partner mapping', s._row, s.ID);
       return;
     }
 
@@ -41,7 +42,7 @@ function sendOverdueReminders() {
       name:    CONFIG.PROGRAMME_NAME
     });
 
-    patchRow_(sh, s._row, { 'Last reminder sent': new Date() });
+    patchSubmission_(sh, s._row, { 'Last reminder sent': new Date() });
     sent++;
   });
 
@@ -54,7 +55,6 @@ function needsReminder_(s, now) {
 
   const submitted = toDate_(s['Added time']);
   if (!submitted) return false;
-
   const ageDays = Math.floor((now - submitted.getTime()) / 86400000);
 
   if (status === 'Pending' && ageDays < CONFIG.REVIEW_DEADLINE_DAYS) return false;

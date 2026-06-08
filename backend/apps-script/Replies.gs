@@ -17,20 +17,18 @@ const STATUS_MAP = {
 };
 
 function scanInboxForReplies() {
-  // Threads we have already processed are starred + label-archived; we look
-  // for unread inbox threads whose subject carries our ref ID and that
-  // arrived in the last 14 days (covers reminders + late replies).
   const query = `is:unread newer_than:14d subject:"${CONFIG.ID_PREFIX}-"`;
   const threads = GmailApp.search(query, 0, 50);
-
   if (!threads.length) return;
+
   const sh = getSheet_();
+  ensureMetaColumns_(sh);
 
   threads.forEach(thread => {
-    try {
-      processThread_(sh, thread);
-    } catch (err) {
-      console.error('Reply scan failed for thread "%s": %s', thread.getFirstMessageSubject(), err);
+    try { processThread_(sh, thread); }
+    catch (err) {
+      console.error('Reply scan failed for thread "%s": %s',
+                    thread.getFirstMessageSubject(), err);
     }
   });
 }
@@ -38,15 +36,9 @@ function scanInboxForReplies() {
 function processThread_(sh, thread) {
   const subj = thread.getFirstMessageSubject() || '';
   const m = subj.match(REF_ID_RE);
-  if (!m) {
-    thread.markRead();   // not ours, leave alone
-    return;
-  }
+  if (!m) { thread.markRead(); return; }
   const refId = m[0];
 
-  // The latest message is the partner's reply (the original notification
-  // we sent is also in the thread). We want the most recent non-script
-  // message.
   const messages = thread.getMessages();
   const reply = mostRecentReply_(messages);
   if (!reply) { thread.markRead(); return; }
@@ -54,9 +46,7 @@ function processThread_(sh, thread) {
   const body = reply.getPlainBody();
   const statusMatch = body.match(STATUS_RE);
   if (!statusMatch) {
-    // Partner wrote back conversationally without the STATUS: keyword.
-    // Don't touch the Sheet — leave the thread unread for a human to triage.
-    console.log('Reply for %s has no STATUS: line; leaving unread.', refId);
+    console.log('Reply for %s has no STATUS: line; leaving unread for human triage.', refId);
     return;
   }
 
@@ -73,8 +63,8 @@ function processThread_(sh, thread) {
 }
 
 function mostRecentReply_(messages) {
-  // Walk from newest to oldest, skip messages sent from the Catalyst account
-  // itself (the original notification + any reminders).
+  // Walk newest → oldest, skipping messages sent by the Catalyst account
+  // itself (the original notification + reminders).
   const self = (CONFIG.CATALYST_EMAIL || '').toLowerCase();
   for (let i = messages.length - 1; i >= 0; i--) {
     const from = (messages[i].getFrom() || '').toLowerCase();
@@ -90,18 +80,15 @@ function applyDecision_(sh, refId, status, reason, fromHeader) {
     return;
   }
 
-  const responder = parseEmailAddress_(fromHeader);
-  const patch = {
-    'Status': status,
+  patchSubmission_(sh, row, {
+    'Status':        status,
     'Response date': new Date(),
-    'Reason': reason || '',
-    'Responded by': responder
-  };
-  patchRow_(sh, row, patch);
+    'Reason':        reason || '',
+    'Responded by':  parseEmailAddress_(fromHeader)
+  });
 
-  // Email the applicant on a final decision
   if (status === 'Accepted' || status === 'Rejected') {
-    const submission = readRowById_(sh, refId);
+    const submission = readSubmissionById_(sh, refId);
     notifyApplicant_(submission, status);
   }
 }
