@@ -70,6 +70,5 @@ first time it runs:
 2. Within ~1 minute: row gains `ID`, `Implementation partner`,
    `Status = Pending`, `last_updated`.
 3. Email lands in the Catalyst sent folder, addressed to the partner
-   resolved from the Institutes dropdown, CCing the district head +
-   Catalyst.
+   resolved from the Institutes dropdown, CCing Catalyst.
 4. Dashboard (when `SHEET_CSV_URL` is set) shows the row on next load.

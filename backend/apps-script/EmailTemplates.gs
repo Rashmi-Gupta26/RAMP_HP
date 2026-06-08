@@ -15,9 +15,8 @@ const REPLY_INSTRUCTIONS = [
   'On the next line, add a short reason:',
   '  REASON: Strong local market fit; will invite for Phase B visit.',
   '',
-  'IMPORTANT: Use Reply All, not Reply, so that IIT Mandi Catalyst and the',
-  'district head stay copied. A reply sent only to the implementation partner',
-  'will NOT be recorded.'
+  'IMPORTANT: Use Reply All, not Reply, so that IIT Mandi Catalyst stays',
+  'copied. A reply sent only to your own address will NOT be recorded.'
 ].join('\n');
 
 function fmtDate_(d) {

@@ -9,7 +9,7 @@
  *   • assigns the next RAMP-YYYY-NNN reference ID
  *   • resolves the implementation partner from the Institutes dropdown
  *   • sets Status = Pending and last_updated = now
- *   • emails the partner (CC: district head + Catalyst)
+ *   • emails the partner (CC: Catalyst)
  *
  * Idempotent: a row with a non-empty ID is skipped.
  * Safe under concurrency thanks to LockService.
@@ -92,17 +92,19 @@ function ingestRow_(sh, headers, rowNum) {
   sendNotification_(s);
 }
 
-/** Notification email to the implementation partner. */
+/** Notification email — To: implementation partner, CC: Catalyst. */
 function sendNotification_(s) {
   const { subject, body } = notificationEmail(s);
-  const districtHead = CONFIG.DISTRICT_HEADS[s.District];
-
-  const cc = [CONFIG.CATALYST_EMAIL];
-  if (districtHead) cc.push(districtHead);
-
   GmailApp.sendEmail(s._partner.to, subject, body, {
-    cc:      cc.join(','),
+    cc:      ccForPartner_(s._partner),
     replyTo: CONFIG.REPLY_TO,
     name:    CONFIG.PROGRAMME_NAME
   });
+}
+
+/** CC list for a partner email — Catalyst, deduped against the To address. */
+function ccForPartner_(partner) {
+  const catalyst = (CONFIG.CATALYST_EMAIL || '').toLowerCase();
+  const to = (partner && partner.to || '').toLowerCase();
+  return (catalyst && catalyst !== to) ? CONFIG.CATALYST_EMAIL : '';
 }

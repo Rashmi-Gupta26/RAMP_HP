@@ -26,44 +26,27 @@ const CONFIG = {
   // ── Reference ID format ───────────────────────────────────────────────
   ID_PREFIX: 'RAMP',          // → RAMP-2026-047
 
-  // ── District head routing ─────────────────────────────────────────────
-  // CC'd on the notification email for ideas from their district.
-  // Replace with the real DIC / DC office addresses.
-  DISTRICT_HEADS: {
-    'Mandi':          'dic-mandi@hp.gov.in',
-    'Kullu':          'dic-kullu@hp.gov.in',
-    'Lahaul & Spiti': 'dic-lahaulspiti@hp.gov.in',
-    'Shimla':         'dic-shimla@hp.gov.in',
-    'Sirmaur':        'dic-sirmaur@hp.gov.in',
-    'Solan':          'dic-solan@hp.gov.in',
-    'Una':            'dic-una@hp.gov.in',
-    'Hamirpur':       'dic-hamirpur@hp.gov.in',
-    'Bilaspur':       'dic-bilaspur@hp.gov.in',
-    'Chamba':         'dic-chamba@hp.gov.in',
-    'Kangra':         'dic-kangra@hp.gov.in',
-    'Kinnaur':        'dic-kinnaur@hp.gov.in'
-  },
-
   // ── Implementation partners ───────────────────────────────────────────
   // The four agencies that actually review ideas. The `to` address gets the
   // notification email; `aliases` are alternate spellings the Zoho dropdown
   // may produce, normalised to the canonical `name`.
+  // Every notification email is sent To: partner, CC: CATALYST_EMAIL.
   PARTNERS: [
     {
       name:    'IIT Mandi Catalyst',
-      to:      'catalyst@iitmandi.ac.in',
+      to:      'rashmi@iitmandicatalyst.in',
       url:     'https://www.iitmandicatalyst.in/',
       aliases: ['iit mandi catalyst', 'catalyst', 'iitmandi catalyst']
     },
     {
       name:    'Skill Labs',
-      to:      'info@skilllabs.net',
+      to:      'himesh.s@skilllabs.net',
       url:     'https://skilllabs.net/',
       aliases: ['skill labs', 'skilllabs', 'skill-labs', 'skilllabs resource services']
     },
     {
       name:    'The Planet Education Society',
-      to:      'admin@theplaneteducation.net',
+      to:      'tpsdm2018@gmail.com',
       url:     'https://theplaneteducation.net/',
       aliases: ['planet education', 'the planet education', 'the planet education institute',
                 'planet education society', 'tpei']

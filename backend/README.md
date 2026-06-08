@@ -13,7 +13,7 @@ Innovator → Zoho Form ──native integration──►  Google Sheet
                               Apps Script (every 1 min)
                               processNewSubmissions()
                                   ├─► fills ID, Status=Pending, last_updated
-                                  └─► emails partner (CC: district head + Catalyst)
+                                  └─► emails partner (CC: Catalyst)
 
 Partner replies (Reply All) ─►  Apps Script (every 10 min)
                               scanInboxForReplies()
@@ -34,7 +34,7 @@ written into the Sheet first. The public website only ever reads from it.
 | Path | Purpose |
 |---|---|
 | [`apps-script/Code.gs`](apps-script/Code.gs) | Trigger installer + optional `doPost` webhook (curl smoke tests) |
-| [`apps-script/Config.gs`](apps-script/Config.gs) | All IDs, partner addresses, district heads, timings — **edit this first** |
+| [`apps-script/Config.gs`](apps-script/Config.gs) | All IDs, partner addresses, timings — **edit this first** |
 | [`apps-script/Sheet.gs`](apps-script/Sheet.gs) | Header-driven sheet access; canonical ↔ Zoho header translation table |
 | [`apps-script/SheetIngest.gs`](apps-script/SheetIngest.gs) | `processNewSubmissions()` — assigns IDs, sends notifications |
 | [`apps-script/EmailTemplates.gs`](apps-script/EmailTemplates.gs) | Notification / reminder / accept / reject email bodies |
@@ -70,10 +70,12 @@ to that single file:
    replace it with [`appsscript.json`](apps-script/appsscript.json).
 4. In `Config.gs`:
    - confirm `SHEET_ID` matches the URL of the Sheet
-   - replace the `DISTRICT_HEADS` placeholders with real DIC email
-     addresses
-   - confirm `PARTNERS[*].to` addresses are correct (defaults sourced
-     from each partner's public website)
+   - confirm `PARTNERS[*].to` addresses are correct (the four
+     implementation-partner inboxes — currently the addresses Catalyst
+     provided)
+   - confirm `CATALYST_EMAIL` matches the Google account that deploys
+     the script (this is the CC on every email and the inbox the
+     reply scanner reads)
 
 ### 3. Authorise & install triggers
 

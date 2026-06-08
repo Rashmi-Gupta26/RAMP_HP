@@ -32,12 +32,8 @@ function sendOverdueReminders() {
     }
 
     const { subject, body } = reminderEmail(s);
-    const districtHead = CONFIG.DISTRICT_HEADS[s.District];
-    const cc = [CONFIG.CATALYST_EMAIL];
-    if (districtHead) cc.push(districtHead);
-
     GmailApp.sendEmail(partner.to, subject, body, {
-      cc:      cc.join(','),
+      cc:      ccForPartner_(partner),
       replyTo: CONFIG.REPLY_TO,
       name:    CONFIG.PROGRAMME_NAME
     });
