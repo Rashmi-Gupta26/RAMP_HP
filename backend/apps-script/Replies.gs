@@ -63,14 +63,13 @@ function processThread_(sh, thread) {
 }
 
 function mostRecentReply_(messages) {
-  // Walk newest → oldest, skipping messages sent by the Catalyst account
-  // itself (the original notification + reminders).
-  const self = (CONFIG.CATALYST_EMAIL || '').toLowerCase();
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const from = (messages[i].getFrom() || '').toLowerCase();
-    if (from.indexOf(self) === -1) return messages[i];
-  }
-  return null;
+  // The very first message in a thread is the script's own notification
+  // (or reminder). Any later message is something a human added — i.e.
+  // a reply we should process. Using thread position instead of sender
+  // is safe in production AND in test mode, where the redirect makes
+  // the user's reply legitimately come from CATALYST_EMAIL itself.
+  if (messages.length < 2) return null;
+  return messages[messages.length - 1];
 }
 
 function applyDecision_(sh, refId, status, reason, fromHeader) {
