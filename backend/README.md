@@ -34,10 +34,11 @@ written into the Sheet first. The public website only ever reads from it.
 | Path | Purpose |
 |---|---|
 | [`apps-script/Code.gs`](apps-script/Code.gs) | Trigger installer + optional `doPost` webhook (curl smoke tests) |
-| [`apps-script/Config.gs`](apps-script/Config.gs) | All IDs, partner addresses, timings — **edit this first** |
+| [`apps-script/Config.gs`](apps-script/Config.gs) | All IDs, partner addresses, timings, test-mode flag — **edit this first** |
 | [`apps-script/Sheet.gs`](apps-script/Sheet.gs) | Header-driven sheet access; canonical ↔ Zoho header translation table |
 | [`apps-script/SheetIngest.gs`](apps-script/SheetIngest.gs) | `processNewSubmissions()` — assigns IDs, sends notifications |
 | [`apps-script/EmailTemplates.gs`](apps-script/EmailTemplates.gs) | Notification / reminder / accept / reject email bodies |
+| [`apps-script/Mail.gs`](apps-script/Mail.gs) | `sendMail_()` chokepoint — honours `TEST_REDIRECT_EMAIL` |
 | [`apps-script/Replies.gs`](apps-script/Replies.gs) | Gmail reply scanner — parses `STATUS:` / `REASON:` lines |
 | [`apps-script/Reminders.gs`](apps-script/Reminders.gs) | 21-day reminder job (respects `STATUS: REVIEW` pause) |
 | [`apps-script/appsscript.json`](apps-script/appsscript.json) | Manifest with OAuth scopes + timezone |
@@ -76,6 +77,8 @@ to that single file:
    - confirm `CATALYST_EMAIL` matches the Google account that deploys
      the script (this is the CC on every email and the inbox the
      reply scanner reads)
+   - decide whether you are testing or going live — see the next
+     section for the `TEST_REDIRECT_EMAIL` toggle
 
 ### 3. Authorise & install triggers
 
@@ -105,6 +108,48 @@ who has the URL. The dashboard's password gate only hides the UI — it
 does not protect the CSV. If applicant PII (phone, email, address) is
 a concern, publish a sanitised tab driven by a `=QUERY()` formula
 instead of the raw Submissions tab.
+
+## Test mode vs go-live
+
+`CONFIG.TEST_REDIRECT_EMAIL` is the single switch that toggles the
+backend between testing and production. Every outgoing email — partner
+notifications, reminders, and applicant Accept/Reject — flows through
+`sendMail_()` in [`Mail.gs`](apps-script/Mail.gs), which honours this
+flag.
+
+### Test mode (default)
+
+`TEST_REDIRECT_EMAIL: 'rashmi@iitmandicatalyst.in'` — every message is
+diverted to this address with a `[TEST → was To:… CC:…]` banner
+prepended to the subject. Run real Zoho submissions end-to-end, send
+real STATUS: replies, watch the dashboard update — no mail ever
+reaches partners or applicants. Sheet state still updates normally.
+
+### Going live
+
+1. Open `Config.gs`.
+2. Set `TEST_REDIRECT_EMAIL: ''` (empty string).
+3. Confirm `CATALYST_EMAIL` and `REPLY_TO` match the deploying account
+   (e.g. update both to `catalyst@iitmandi.ac.in` if Catalyst takes
+   ownership; see "Migrating ownership" below).
+4. Save — Apps Script picks up Config changes on the next invocation,
+   no redeploy needed.
+
+### Migrating ownership (rashmi@iitmandicatalyst.in → catalyst@iitmandi.ac.in)
+
+Apps Script always runs as the deploying account. To hand over:
+
+1. In the Apps Script editor: **Share → add `catalyst@iitmandi.ac.in`
+   as Editor**.
+2. From the new account: **Deploy → Manage deployments → Edit → New
+   version → Deploy** (signs the deployment as the catalyst account).
+3. From the new account: select function `installTriggers` → **Run**
+   to re-create the three time-based triggers under the new ownership.
+4. From the old (rashmi) account: open the trigger list (clock icon)
+   and delete the three triggers that still belong to it — otherwise
+   two scripts will both try to process the sheet.
+5. Update `CATALYST_EMAIL` and `REPLY_TO` in `Config.gs` to
+   `catalyst@iitmandi.ac.in`.
 
 ## How it stays consistent
 

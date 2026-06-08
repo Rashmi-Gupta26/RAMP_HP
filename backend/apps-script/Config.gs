@@ -14,9 +14,20 @@ const CONFIG = {
 
   // ── Programme identity ────────────────────────────────────────────────
   PROGRAMME_NAME: 'RAMP Programme — IIT Mandi Catalyst',
-  CATALYST_EMAIL: 'catalyst@iitmandi.ac.in',   // always CC'd; the inbox the script reads
-  REPLY_TO:       'catalyst@iitmandi.ac.in',
+  // CATALYST_EMAIL must match the Google account that deploys the script
+  // (CC on every email, Reply-To header, and the "self" filter the reply
+  // scanner uses to skip its own messages). When ownership migrates to
+  // catalyst@iitmandi.ac.in, update both lines and re-deploy.
+  CATALYST_EMAIL: 'rashmi@iitmandicatalyst.in',
+  REPLY_TO:       'rashmi@iitmandicatalyst.in',
   PUBLIC_SITE:    'https://rashmi-gupta26.github.io/RAMP_HP/',
+
+  // ── Test mode ────────────────────────────────────────────────────────
+  // When set, ALL outgoing emails (partner notifications, reminders, and
+  // applicant Accept/Reject) are diverted to this address with a `[TEST]`
+  // subject banner that shows the original To + CC. Leave empty in
+  // production to let mail flow to real recipients.
+  TEST_REDIRECT_EMAIL: 'rashmi@iitmandicatalyst.in',
 
   // ── Review timings (days) ─────────────────────────────────────────────
   REVIEW_DEADLINE_DAYS: 21,   // hard deadline for a decision

@@ -95,7 +95,7 @@ function ingestRow_(sh, headers, rowNum) {
 /** Notification email — To: implementation partner, CC: Catalyst. */
 function sendNotification_(s) {
   const { subject, body } = notificationEmail(s);
-  GmailApp.sendEmail(s._partner.to, subject, body, {
+  sendMail_(s._partner.to, subject, body, {
     cc:      ccForPartner_(s._partner),
     replyTo: CONFIG.REPLY_TO,
     name:    CONFIG.PROGRAMME_NAME

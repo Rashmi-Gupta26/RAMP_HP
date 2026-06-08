@@ -32,7 +32,7 @@ function sendOverdueReminders() {
     }
 
     const { subject, body } = reminderEmail(s);
-    GmailApp.sendEmail(partner.to, subject, body, {
+    sendMail_(partner.to, subject, body, {
       cc:      ccForPartner_(partner),
       replyTo: CONFIG.REPLY_TO,
       name:    CONFIG.PROGRAMME_NAME

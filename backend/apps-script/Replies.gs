@@ -96,7 +96,7 @@ function applyDecision_(sh, refId, status, reason, fromHeader) {
 function notifyApplicant_(s, status) {
   if (!s || !s.Email) return;
   const tpl = (status === 'Accepted') ? acceptEmail(s) : rejectEmail(s);
-  GmailApp.sendEmail(s.Email, tpl.subject, tpl.body, {
+  sendMail_(s.Email, tpl.subject, tpl.body, {
     replyTo: CONFIG.REPLY_TO,
     name:    CONFIG.PROGRAMME_NAME
   });
