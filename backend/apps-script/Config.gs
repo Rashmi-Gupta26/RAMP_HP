@@ -106,8 +106,14 @@ function resolvePartner(partnerOrInstituteName) {
 /**
  * Institute → implementation partner.
  *
- * Mirrors js/data.js — keep in sync when new institutes are added.
- * Keys are lower-cased so resolvePartner() can match case-insensitively.
+ * Two sets of keys, both pointing at the same four partners:
+ *   • Canonical names — mirror js/data.js, used to render the public site.
+ *   • Zoho dropdown variants — the literal strings the Zoho form writes to
+ *     the sheet (different punctuation, sometimes extra suffixes). These
+ *     are what resolvePartner() actually matches against on ingest, so any
+ *     drift in the Zoho dropdown must be added here too.
+ *
+ * Keys are lower-cased so resolvePartner() matches case-insensitively.
  */
 const INSTITUTE_TO_PARTNER = {
   // Mandi
@@ -170,5 +176,25 @@ const INSTITUTE_TO_PARTNER = {
   'rajiv gandhi govt. engg. college, nagrota bagwan':                'Regional Centre for Entrepreneurship Development',
   'govt. iti nehran pukhar':                                         'Regional Centre for Entrepreneurship Development',
   'govt. industrial training institute (iti) shahpur':               'Regional Centre for Entrepreneurship Development',
-  'wazir ram singh government college, dehri':                       'Regional Centre for Entrepreneurship Development'
+  'wazir ram singh government college, dehri':                       'Regional Centre for Entrepreneurship Development',
+
+  // ── Zoho-dropdown variants ─────────────────────────────────────────
+  // The literal strings the form writes to the sheet, when they differ
+  // from the canonical names above (extra commas, "Government" spelled
+  // out, missing periods, parenthetical suffixes, etc.). Add a new line
+  // here any time the Zoho dropdown drifts again.
+  'iti, arki':                                                       'Skill Labs',
+  'iti, bangana':                                                    'Skill Labs',
+  'govt. iti, bhoranj':                                              'Skill Labs',
+  'govt. iti, krishangarh':                                          'Skill Labs',
+  'govt. iti, nehran pukhar':                                        'Regional Centre for Entrepreneurship Development',
+  'govt. college, barsar':                                           'Skill Labs',
+  'govt. college, dharampur':                                        'Skill Labs',
+  'govt. college, khad':                                             'Skill Labs',
+  'industrial training institute (iti), sainj':                      'IIT Mandi Catalyst',
+  'government industrial training institute (iti), shahpur':         'Regional Centre for Entrepreneurship Development',
+  'govt sr. sec school giabong':                                     'The Planet Education Society',
+  'govt. sr. sec school urni':                                       'The Planet Education Society',
+  'atal bihari vajpayee govt. institute of engineering & technology pragatinagar (gumma)': 'The Planet Education Society',
+  'batt private iti bhonkharimorh bathri dalhousie':                 'Regional Centre for Entrepreneurship Development'
 };
