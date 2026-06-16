@@ -37,18 +37,15 @@ const ZOHO_HEADER = {
   'Address':              'Address',
   'Gender':               'Gender',
   'Date of birth':        'Date of birth',
-  'Age':                  'Age',
-  'District':             'District',
-  'Institute':            'Institutes',
-  'Institute fallback':   'Institues name',                  // sic: Zoho typo
+  'District':             'Choose your District',
+  'Institute':            'Choose your Institutes',
   'Idea title':           'Idea title',
   'Idea description':     'Provide a short description of your idea',
   'Startup status':       'Current Status of Your Startup/Business',
-  'Sector':               'which sector does your startup belong to',
-  'Startup stage':        'What is the current stage of your startup',
+  'Sector':               'which sector does your startup belong to ?',
+  'Startup stage':        'Current Status of Your Startup/Business',  // collapsed in new form
   'Prior research':       'Have you done any research related to this idea?',
   'Prototype made':       'Have your tried making your product ?',  // sic: Zoho typo
-  'Sample / model':       'Have you made any sample or model of your product ?',
   'Testing method':       'How did you do the testing of your product ?',
   'Feedback received':    'What feedback did you receive?',
   'Commercialised':       'Is this commercialised?',
@@ -59,7 +56,7 @@ const ZOHO_HEADER = {
   'Team':                 'Do you have a team?',
   'Support needed now':   'What support do you need right now ?',
   'Support from RAMP':    'What kind of support do you need from the RAMP Program?',
-  'Prior incubation':     'Have you been part of any incubation earlier'
+  'Prior incubation':     'Have you been part of any incubation earlier ?'
 };
 
 /** Returns the spreadsheet tab the script reads/writes. */
@@ -132,10 +129,6 @@ function rowToSubmission_(headers, rowValues) {
     const col = headerCol_(headers, meta);
     if (col > 0) s[meta] = rowValues[col - 1];
   });
-  // Convenience: prefer free-text fallback only if dropdown is blank
-  if (!s['Institute'] && s['Institute fallback']) {
-    s['Institute'] = s['Institute fallback'];
-  }
   return s;
 }
 
@@ -194,4 +187,9 @@ function patchSubmission_(sh, rowNum, patch) {
   });
   const luCol = canonCol_(headers, 'last_updated');
   if (luCol > 0) sh.getRange(rowNum, luCol).setValue(new Date());
+
+  // Mirror to the publishable Dashboard tab so the website reflects the
+  // change on its next CSV fetch. Wrapped in try so a Dashboard-tab error
+  // can never break the underlying status write.
+  try { rebuildDashboardTab(); } catch (e) { console.warn('rebuildDashboardTab failed:', e); }
 }

@@ -66,7 +66,6 @@ function notificationEmail(submission) {
     '─── RESEARCH & VALIDATION ───────────────────────',
     pad_('Prior research:',    s['Prior research']),
     pad_('Prototype made:',    s['Prototype made']),
-    pad_('Sample / model:',    s['Sample / model']),
     pad_('Testing method:',    s['Testing method']),
     pad_('Feedback received:', s['Feedback received']),
     pad_('Commercialised:',    s.Commercialised),

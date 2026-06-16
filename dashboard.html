@@ -288,10 +288,13 @@ mountChrome('dashboard');
 
 /* ─── Backend wiring ───
    Published CSV of the "Dashboard" tab of the RAMP master sheet — pulls
-   only 8 dashboard-relevant columns via a =QUERY() formula. The source
-   sheet (with all applicant PII) stays private. Leave empty during local
+   only the 8 columns this page's table needs: ID, Added time, Name,
+   District, Implementation partner, Sector, Status, Response date.
+   Phone, email, idea title/description, reason, and reviewer notes stay
+   on the private Submissions tab and never enter the public CSV — the
+   detail modal will show "—" for those fields. Leave empty during local
    dev to keep showing the seeded demo data. */
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7unusGSAt5aSo45EAybKT1ivskUMxaThS29_hstxU4FZI5mTrVAFIfr589-C8K1oijsm0SJUT7gbk/pub?gid=658241801&single=true&output=csv';
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQ39wV30Gjl22n0hB2ljD6-505yJu-wBUlqJdtROBNMl7qVt1qm5_OCbbrq6tyrGEUrMTrGoOlS3L4/pub?gid=1638472130&single=true&output=csv';
 
 /* ─── The four implementation partners ───
    Canonical names match backend/apps-script/Config.gs > CONFIG.PARTNERS.
